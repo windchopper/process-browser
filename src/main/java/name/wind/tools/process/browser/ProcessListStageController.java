@@ -50,6 +50,7 @@ import static java.util.stream.Collectors.toList;
                         .get(),
                     terminateButton = Builder.direct(Button::new)
                         .set(target -> target::setText, "Try terminate")
+                        .set(target -> target::setOnAction, this::destroy)
                         .get()
                 ))
                 .get())
@@ -90,6 +91,13 @@ import static java.util.stream.Collectors.toList;
             .filter(processHandle -> processHandle.info().command().isPresent())
             .collect(
                 toList())));
+    }
+
+    private void destroy(ActionEvent event) {
+        ProcessHandle processHandle = processTableView.getSelectionModel().getSelectedItem();
+        if (processHandle.destroy()) {
+            processTableView.getItems().remove(processHandle);
+        }
     }
 
     private void start(@Observes @Named(StageConstructed.IDENTIFIER__PROCESS_LIST) StageConstructed stageConstructed) {
