@@ -1,0 +1,8 @@
+.button, .combo-box, .spinner {
+    -fx-min-width: 20.0;
+    -fx-max-width: 10000.0;
+}
+
+.separator {
+    -fx-padding: 0 0 0 3px;
+}
