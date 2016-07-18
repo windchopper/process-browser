@@ -47,6 +47,7 @@ import static java.util.stream.Collectors.toList;
                         .get(),
                     makeFullscreenButton = Builder.direct(Button::new)
                         .set(target -> target::setText, "Make fullscreen")
+                        .set(target -> target::setOnAction, this::makeFullscreen)
                         .get(),
                     terminateButton = Builder.direct(Button::new)
                         .set(target -> target::setText, "Try terminate")
@@ -91,6 +92,12 @@ import static java.util.stream.Collectors.toList;
             .filter(processHandle -> processHandle.info().command().isPresent())
             .collect(
                 toList())));
+    }
+
+    private void makeFullscreen(ActionEvent event) {
+        ProcessHandle processHandle = processTableView.getSelectionModel().getSelectedItem();
+        WindowsRoutines.listProcessWindowHandles(processHandle)
+            .forEach(hwnd -> System.err.printf("hwnd: %s\n", hwnd));
     }
 
     private void destroy(ActionEvent event) {
