@@ -96,8 +96,7 @@ import static java.util.stream.Collectors.toList;
 
     private void makeFullscreen(ActionEvent event) {
         ProcessHandle processHandle = processTableView.getSelectionModel().getSelectedItem();
-        WindowsRoutines.listProcessWindowHandles(processHandle)
-            .forEach(hwnd -> System.err.printf("hwnd: %s\n", hwnd));
+        WindowsRoutines.listProcessWindows(processHandle);
     }
 
     private void destroy(ActionEvent event) {
