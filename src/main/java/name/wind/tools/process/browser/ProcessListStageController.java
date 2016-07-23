@@ -87,11 +87,17 @@ import static java.util.stream.Collectors.toList;
             .get();
     }
 
-    private void refresh(ActionEvent event) {
+    protected void refresh(ActionEvent event) {
+        System.out.println("refresh");
+        insideRefresh();
         processTableView.setItems(FXCollections.observableArrayList(ProcessHandle.allProcesses()
             .filter(processHandle -> processHandle.info().command().isPresent())
             .collect(
                 toList())));
+    }
+
+    protected void insideRefresh() {
+        System.out.println("insideRefresh");
     }
 
     private void makeFullscreen(ActionEvent event) {
@@ -106,7 +112,7 @@ import static java.util.stream.Collectors.toList;
         }
     }
 
-    private void start(@Observes @Named(StageConstructed.IDENTIFIER__PROCESS_LIST) StageConstructed stageConstructed) {
+    public void start(@Observes @Named(StageConstructed.IDENTIFIER__PROCESS_LIST) StageConstructed stageConstructed) {
         super.start(
             stageConstructed.stage(),
             stageConstructed.identifier(),
