@@ -4,19 +4,12 @@ import javafx.geometry.Dimension2D;
 import javafx.scene.Node;
 import javafx.stage.Stage;
 import javafx.stage.Window;
-import name.wind.common.cdi.ProperInterceptorMethodHandler;
 import name.wind.common.fx.behavior.WindowApplyStoredBoundsBehavior;
 import name.wind.common.util.Value;
-
-import javax.annotation.PostConstruct;
 
 public abstract class AbstractStageController {
 
     protected Stage stage;
-
-    @PostConstruct protected void initialize() {
-        ProperInterceptorMethodHandler.install(this);
-    }
 
     protected void start(Stage stage, String identifier, Dimension2D preferredSize) {
         new WindowApplyStoredBoundsBehavior(identifier, window -> initializeInitialSize(window, preferredSize))

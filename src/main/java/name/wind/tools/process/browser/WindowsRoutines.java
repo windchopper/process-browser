@@ -1,17 +1,23 @@
 package name.wind.tools.process.browser;
 
-import com.sun.jna.platform.win32.Kernel32;
+import com.sun.jna.Pointer;
+import com.sun.jna.WString;
+import com.sun.jna.platform.win32.Kernel32Util;
 import com.sun.jna.platform.win32.User32;
 import com.sun.jna.platform.win32.Win32Exception;
 import com.sun.jna.platform.win32.WinDef;
 import com.sun.jna.ptr.IntByReference;
+import name.wind.tools.process.browser.windows.ProcessHandle;
+import name.wind.tools.process.browser.windows.jna.Kernel32Extended;
+import name.wind.tools.process.browser.windows.jna.Shell32Extended;
 
 import java.util.ArrayList;
+import java.util.Arrays;
 import java.util.List;
 
-public class WindowsRoutines {
+public interface WindowsRoutines {
 
-    public static String windowTitle(WinDef.HWND hwnd) {
+    default String windowTitle(WinDef.HWND hwnd) {
         int bufferLength = User32.INSTANCE.GetWindowTextLength(hwnd);
 
         if (bufferLength > 0) {
@@ -19,7 +25,7 @@ public class WindowsRoutines {
 
             if (0 == User32.INSTANCE.GetWindowText(hwnd, buffer, buffer.length)) {
                 throw new Win32Exception(
-                    Kernel32.INSTANCE.GetLastError());
+                    Kernel32Extended.INSTANCE.GetLastError());
             }
 
             return new String(buffer);
@@ -28,7 +34,7 @@ public class WindowsRoutines {
         return null;
     }
 
-    public static List<WinDef.HWND> listProcessWindows(ProcessHandle processHandle) {
+    default List<WinDef.HWND> processWindows(ProcessHandle processHandle) {
         List<WinDef.HWND> windowHandles = new ArrayList<>();
 
         if (User32.INSTANCE.EnumWindows((hwnd, pointer) -> {
@@ -37,10 +43,10 @@ public class WindowsRoutines {
 
                 if (0 == User32.INSTANCE.GetWindowThreadProcessId(hwnd, windowProcess)) {
                     throw new Win32Exception(
-                        Kernel32.INSTANCE.GetLastError());
+                        Kernel32Extended.INSTANCE.GetLastError());
                 }
 
-                if (windowProcess.getValue() == processHandle.getPid()) {
+                if (windowProcess.getValue() == processHandle.identifier()) {
                     System.out.printf("hwnd: %s, title: %s\n", hwnd, windowTitle(hwnd));
                     windowHandles.add(hwnd);
                 }
@@ -51,7 +57,7 @@ public class WindowsRoutines {
             return windowHandles;
         } else {
             throw new Win32Exception(
-                Kernel32.INSTANCE.GetLastError());
+                Kernel32Extended.INSTANCE.GetLastError());
         }
     }
 
