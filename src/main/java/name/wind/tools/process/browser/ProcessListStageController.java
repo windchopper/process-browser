@@ -26,7 +26,7 @@ import java.util.stream.Stream;
 import static java.util.Arrays.asList;
 import static java.util.Collections.singletonList;
 import static name.wind.tools.process.browser.windows.ProcessHandle.allAvailable;
-import static name.wind.tools.process.browser.windows.ProcessHandle.relaunchCurrentProcessAsAdministrator;
+import static name.wind.tools.process.browser.windows.ProcessHandle.launchElevated;
 
 @ApplicationScoped public class ProcessListStageController extends AbstractStageController implements WindowsRoutines {
 
@@ -48,7 +48,7 @@ import static name.wind.tools.process.browser.windows.ProcessHandle.relaunchCurr
             .set(target -> target::setTop, Builder.direct(ToolBar::new)
                 .add(target -> target::getItems, asList(
                     relaunchAsAdministratorButton = Builder.direct(Button::new)
-                        .set(target -> target::setText, "Relaunch as administrator")
+                        .set(target -> target::setText, "Launch as administrator")
                         .set(target -> target::setOnAction, this::relaunchAsAdministrator)
                         .get(),
                     refreshButton = Builder.direct(Button::new)
@@ -101,7 +101,11 @@ import static name.wind.tools.process.browser.windows.ProcessHandle.relaunchCurr
     }
 
     private void relaunchAsAdministrator(ActionEvent event) {
-        relaunchCurrentProcessAsAdministrator();
+        try {
+            launchElevated();
+        } catch (InterruptedException e) {
+            e.printStackTrace();
+        }
     }
 
     private void loadProcessTree(TreeItem<ExecutableHandle> root) {
@@ -160,10 +164,8 @@ import static name.wind.tools.process.browser.windows.ProcessHandle.relaunchCurr
         Stream.of(makeFullscreenButton, terminateButton).forEach(
             button -> button.disableProperty().bind(selectionIsProcessHandle.not()));
 
-        ProcessHandle currentProcessHandle = ProcessHandle.current();
-
         relaunchAsAdministratorButton.setDisable(
-            currentProcessHandle.hasAdministrativeRights() && currentProcessHandle.elevated());
+            ProcessHandle.hasAdministrativeRights() && ProcessHandle.elevated());
 
         processListStage.show();
     }

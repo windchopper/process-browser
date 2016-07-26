@@ -26,38 +26,15 @@ public interface Kernel32Extended extends Kernel32 {
     boolean GetTokenInformation(
         WinNT.HANDLE TokenHandle,
         int /* WinNT.TOKEN_INFORMATION_CLASS */ TokenInformationClass,
-        Structure.ByReference TokenInformation,
+        Pointer TokenInformation,
         int TokenInformationLength,
         IntByReference ReturnLength
     );
 
-    class TOKEN_ELEVATION extends Structure {
-
-        public static class ByReference extends TOKEN_ELEVATION implements Structure.ByReference {
-            public ByReference() {
-            }
-
-            public ByReference(Pointer memory) {
-                super(memory);
-            }
-        }
-
-        public DWORD TokenIsElevated;
-
-        public TOKEN_ELEVATION() {
-            TokenIsElevated = new WinDef.DWORD(0);
-        }
-
-        public TOKEN_ELEVATION(Pointer memory) {
-            super(memory);
-            read();
-        }
-
-        @Override
-        protected List getFieldOrder() {
-            return Arrays.asList("TokenIsElevated");
-        }
-
+    interface TOKEN_ELEVATION_TYPE {
+        int TokenElevationTypeDefault  = 1;
+        int TokenElevationTypeFull = 2;
+        int TokenElevationTypeLimited = 3;
     }
 
     class MODULEENTRY32 extends Structure {

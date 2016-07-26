@@ -12,15 +12,18 @@ import name.wind.tools.process.browser.windows.jna.Shell32Extended;
 
 import java.nio.file.Path;
 import java.nio.file.Paths;
-import java.util.Arrays;
 import java.util.List;
 import java.util.Objects;
 
+import static com.sun.jna.platform.win32.WinBase.STILL_ACTIVE;
+import static java.util.Arrays.copyOfRange;
 import static java.util.Arrays.stream;
 import static java.util.Collections.unmodifiableList;
 import static java.util.stream.Collectors.toList;
 
 public class ProcessHandle implements ExecutableHandle {
+
+    private static final int TIMEOUT__RELAUNCH_WAIT = 3000;
 
     private static final int ARRAY_LENGTH__PROCESS_IDENTIFIERS = 1024;
     private static final int ARRAY_LENGTH__MODULE_HANDLES = 1024;
@@ -29,6 +32,7 @@ public class ProcessHandle implements ExecutableHandle {
     private static final PsapiExtended psapi = PsapiExtended.INSTANCE;
     private static final Advapi32 advapi = Advapi32.INSTANCE;
     private static final Shell32Extended shell = Shell32Extended.INSTANCE;
+    private static final User32 user = User32.INSTANCE;
 
     private final int identifier;
     private final List<ProcessModuleHandle> modules;
@@ -53,40 +57,6 @@ public class ProcessHandle implements ExecutableHandle {
     /*
      *
      */
-
-    public boolean hasAdministrativeRights() {
-        Advapi32Util.Account[] groups = Advapi32Util.getCurrentUserGroups();
-
-        for (Advapi32Util.Account group : groups) {
-            WinNT.PSIDByReference sid = new WinNT.PSIDByReference();
-            advapi.ConvertStringSidToSid(group.sidString, sid);
-
-            if (advapi.IsWellKnownSid(sid.getValue(), WinNT.WELL_KNOWN_SID_TYPE.WinBuiltinAdministratorsSid)) {
-                return true;
-            }
-        }
-
-        return false;
-    }
-
-    public boolean elevated() {
-        WinNT.HANDLEByReference tokenReference = new WinNT.HANDLEByReference();
-        if (kernel.OpenProcessToken(kernel.GetCurrentProcess(), WinNT.TOKEN_QUERY, tokenReference)) {
-            try {
-                Kernel32Extended.TOKEN_ELEVATION elevation = new Kernel32Extended.TOKEN_ELEVATION();
-                IntByReference elevationSize = new IntByReference();
-                if (kernel.GetTokenInformation(tokenReference.getValue(), WinNT.TOKEN_INFORMATION_CLASS.TokenElevation, new Kernel32Extended.TOKEN_ELEVATION.ByReference(elevation.getPointer()), elevation.size(), elevationSize)) {
-                    return elevation.TokenIsElevated.intValue() != 0;
-                } else {
-                    throw win32Exception();
-                }
-            } finally {
-                kernel.CloseHandle(tokenReference.getValue());
-            }
-        } else {
-            throw win32Exception();
-        }
-    }
 
     public void destroy(int exitCode) {
         int openFlags = WinNT.PROCESS_VM_READ | WinNT.PROCESS_QUERY_INFORMATION | WinNT.PROCESS_SUSPEND_RESUME | WinNT.PROCESS_TERMINATE | WinNT.SYNCHRONIZE;
@@ -161,51 +131,84 @@ public class ProcessHandle implements ExecutableHandle {
         }
     }
 
-    public static void relaunchCurrentProcessAsAdministrator() {
-        char[] chars = new char[WinDef.MAX_PATH];
-
-//        int ownPID = kernel.GetCurrentProcessId();
-
-//        int openFlags = WinNT.PROCESS_VM_READ | WinNT.PROCESS_QUERY_INFORMATION | WinNT.PROCESS_SUSPEND_RESUME | WinNT.PROCESS_TERMINATE | WinNT.SYNCHRONIZE;
-//        WinNT.HANDLE processHandle = kernel.OpenProcess(openFlags, false, ownPID);
-        WinNT.HANDLE processHandle = kernel.GetCurrentProcess();
-
-        try {
-            psapi.GetModuleFileNameExW(processHandle, null, chars, chars.length);
-
-            String command = Native.toString(chars), args = null;
-
-            IntByReference r = new IntByReference();
-            Pointer argv_ptr = Shell32Extended.INSTANCE.CommandLineToArgvW(kernel.GetCommandLineW(), r);
-            String[] argv = argv_ptr.getWideStringArray(0);
-            Kernel32Extended.INSTANCE.LocalFree(argv_ptr);
-
-            argv = Arrays.copyOfRange(argv, 1, argv.length);
-
-            args = String.join(" ", (CharSequence[]) argv);
-
-            System.out.println(command);
-            System.out.println(args);
-
-            Shell32Extended.SHELLEXECUTEINFO execInfo = new Shell32Extended.SHELLEXECUTEINFO();
-            execInfo.lpFile = new WString(command);
-            if (args != null)
-                execInfo.lpParameters = new WString(args);
-            execInfo.nShow = Shell32Extended.SW_SHOWDEFAULT;
-            execInfo.fMask = Shell32Extended.SEE_MASK_NOCLOSEPROCESS;
-            execInfo.lpVerb = new WString("runas");
-            boolean result = shell.ShellExecuteEx(execInfo);
-
-            if (!result)
-            {
-                throw win32Exception();
-            } else {
-                WinNT.HANDLE childProcessHandle = execInfo.hProcess;
-
-
+    public static String[] parameters() {
+        IntByReference parametersLength = new IntByReference();
+        Pointer parametersPointer = shell.CommandLineToArgvW(kernel.GetCommandLineW(), parametersLength);
+        if (parametersPointer != null) {
+            try {
+                return copyOfRange(parametersPointer.getWideStringArray(0), 1, parametersLength.getValue());
+            } finally {
+                kernel.LocalFree(parametersPointer);
             }
-        } finally {
-            kernel.CloseHandle(processHandle);
+        } else {
+            throw win32Exception();
+        }
+    }
+
+    public static boolean hasAdministrativeRights() {
+        Advapi32Util.Account[] groups = Advapi32Util.getCurrentUserGroups();
+
+        for (Advapi32Util.Account group : groups) {
+            WinNT.PSIDByReference sid = new WinNT.PSIDByReference();
+            advapi.ConvertStringSidToSid(group.sidString, sid);
+
+            if (advapi.IsWellKnownSid(sid.getValue(), WinNT.WELL_KNOWN_SID_TYPE.WinBuiltinAdministratorsSid)) {
+                return true;
+            }
+        }
+
+        return false;
+    }
+
+    public static boolean elevated() {
+        WinNT.HANDLEByReference tokenReference = new WinNT.HANDLEByReference();
+        if (kernel.OpenProcessToken(kernel.GetCurrentProcess(), WinNT.TOKEN_QUERY, tokenReference)) {
+            try {
+                WinDef.DWORDByReference tokenElevationType = new WinDef.DWORDByReference();
+                IntByReference elevationSize = new IntByReference();
+                if (kernel.GetTokenInformation(tokenReference.getValue(), WinNT.TOKEN_INFORMATION_CLASS.TokenElevationType, tokenElevationType.getPointer(), WinDef.DWORD.SIZE, elevationSize)) {
+                    return tokenElevationType.getValue().intValue() == Kernel32Extended.TOKEN_ELEVATION_TYPE.TokenElevationTypeFull;
+                } else {
+                    throw win32Exception();
+                }
+            } finally {
+                kernel.CloseHandle(tokenReference.getValue());
+            }
+        } else {
+            throw win32Exception();
+        }
+    }
+
+    public static void launchElevated() throws InterruptedException {
+        WinNT.HANDLE currentProcessHandle = kernel.GetCurrentProcess();
+
+        char[] characters = new char[WinDef.MAX_PATH];
+        psapi.GetModuleFileNameExW(currentProcessHandle, null, characters, characters.length);
+
+        String file = Native.toString(characters), arguments = String.join(" ", (CharSequence[]) parameters());
+
+        Shell32Extended.SHELLEXECUTEINFO execInfo = new Shell32Extended.SHELLEXECUTEINFO();
+        execInfo.lpFile = new WString(file);
+        execInfo.lpParameters = new WString(arguments);
+        execInfo.lpVerb = new WString("runas");
+        execInfo.fMask = Shell32Extended.SEE_MASK_NOCLOSEPROCESS;
+        execInfo.nShow = Shell32Extended.SW_SHOWDEFAULT;
+
+        if (shell.ShellExecuteEx(execInfo)) {
+            Thread.sleep(TIMEOUT__RELAUNCH_WAIT);
+            IntByReference exitCode = new IntByReference();
+            if (kernel.GetExitCodeProcess(execInfo.hProcess, exitCode)) {
+                if (exitCode.getValue() == STILL_ACTIVE) {
+                    kernel.TerminateProcess(currentProcessHandle, 0);
+                } else {
+                    kernel.CloseHandle(execInfo.hProcess);
+                    throw new RuntimeException("Elevated process terminates");
+                }
+            } else {
+                throw win32Exception();
+            }
+        } else {
+            throw win32Exception();
         }
     }
 
