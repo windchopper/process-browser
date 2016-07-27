@@ -51,7 +51,7 @@ public class ProcessHandle implements ExecutableHandle {
     }
 
     public List<ProcessModuleHandle> modules() {
-        return unmodifiableList(modules);
+        return unmodifiableList(modules.subList(1, modules.size()));
     }
 
     /*

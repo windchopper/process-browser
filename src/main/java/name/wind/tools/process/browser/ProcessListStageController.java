@@ -2,7 +2,6 @@ package name.wind.tools.process.browser;
 
 import javafx.beans.binding.Bindings;
 import javafx.beans.binding.BooleanBinding;
-import javafx.beans.property.ReadOnlyLongWrapper;
 import javafx.beans.property.ReadOnlyStringWrapper;
 import javafx.event.ActionEvent;
 import javafx.scene.Parent;
@@ -10,11 +9,13 @@ import javafx.scene.Scene;
 import javafx.scene.control.*;
 import javafx.scene.layout.BorderPane;
 import javafx.stage.Stage;
+import javafx.util.Callback;
 import name.wind.common.util.Builder;
 import name.wind.common.util.Value;
 import name.wind.tools.process.browser.events.StageConstructed;
 import name.wind.tools.process.browser.windows.ExecutableHandle;
 import name.wind.tools.process.browser.windows.ProcessHandle;
+import name.wind.tools.process.browser.windows.ProcessModuleHandle;
 
 import javax.enterprise.context.ApplicationScoped;
 import javax.enterprise.event.Observes;
@@ -34,7 +35,6 @@ import static name.wind.tools.process.browser.windows.ProcessHandle.launchElevat
 
     private TreeTableView<ExecutableHandle> processTreeTableView;
     private Button relaunchAsAdministratorButton;
-    private Button refreshButton;
     private Button makeFullscreenButton;
     private Button terminateButton;
 
@@ -44,25 +44,36 @@ import static name.wind.tools.process.browser.windows.ProcessHandle.launchElevat
 
         loadProcessTree(root);
 
+        Callback<TreeTableColumn<ExecutableHandle, String>, TreeTableCell<ExecutableHandle, String>> cellFactory = column -> new TreeTableCell<ExecutableHandle, String>() {
+            @Override protected void updateItem(String item, boolean empty) {
+                super.updateItem(item, empty);
+                setText(item);
+                TreeTableRow<ExecutableHandle> row = getTreeTableRow();
+                setStyle(row.getTreeItem() != null && row.getTreeItem().getValue() instanceof ProcessModuleHandle
+                    ? "-fx-text-fill: #3b3b3b; -fx-font-style: italic"
+                    : "-fx-text-fill: #000000; -fx-font-style: normal");
+            }
+        };
+
         return Builder.direct(BorderPane::new)
             .set(target -> target::setTop, Builder.direct(ToolBar::new)
                 .add(target -> target::getItems, asList(
                     relaunchAsAdministratorButton = Builder.direct(Button::new)
-                        .set(target -> target::setText, "Launch as administrator")
+                        .set(target -> target::setText, bundle.getString("name.wind.tools.process.browser.ProcessListStageController.toolBar.button.runElevated"))
                         .set(target -> target::setOnAction, this::relaunchAsAdministrator)
                         .get(),
-                    refreshButton = Builder.direct(Button::new)
-                        .set(target -> target::setText, "Refresh")
+                    Builder.direct(Button::new)
+                        .set(target -> target::setText, bundle.getString("name.wind.tools.process.browser.ProcessListStageController.toolBar.button.refresh"))
                         .set(target -> target::setOnAction, this::refresh)
                         .get(),
                     Builder.direct(Separator::new)
                         .get(),
                     makeFullscreenButton = Builder.direct(Button::new)
-                        .set(target -> target::setText, "Make fullscreen")
+                        .set(target -> target::setText, bundle.getString("name.wind.tools.process.browser.ProcessListStageController.toolBar.button.makeFullscreen"))
                         .set(target -> target::setOnAction, this::makeFullscreen)
                         .get(),
                     terminateButton = Builder.direct(Button::new)
-                        .set(target -> target::setText, "Try terminate")
+                        .set(target -> target::setText, bundle.getString("name.wind.tools.process.browser.ProcessListStageController.toolBar.button.terminate"))
                         .set(target -> target::setOnAction, this::destroy)
                         .get()
                 ))
@@ -72,28 +83,35 @@ import static name.wind.tools.process.browser.windows.ProcessHandle.launchElevat
                 .set(target -> target::setShowRoot, false)
                 .set(target -> target::setColumnResizePolicy, TreeTableView.CONSTRAINED_RESIZE_POLICY)
                 .add(target -> target::getColumns, asList(
-                    Builder.direct((Supplier<TreeTableColumn<ExecutableHandle, Number>>) TreeTableColumn::new)
+                    Builder.direct((Supplier<TreeTableColumn<ExecutableHandle, String>>) TreeTableColumn::new)
                         .set(target -> target::setText, bundle.getString("name.wind.tools.process.browser.ProcessListStageController.table.column.identifier"))
                         .set(target -> target::setMaxWidth, Integer.MAX_VALUE * 10.)
-                        .set(target -> target::setCellValueFactory, features -> {
-                            if (features.getValue().getValue() instanceof ProcessHandle) {
-                                return new ReadOnlyLongWrapper(((ProcessHandle) features.getValue().getValue()).identifier());
-                            } else {
-                                return null;
-                            }
-                        })
+                        .set(target -> target::setCellValueFactory, features -> new ReadOnlyStringWrapper(
+                            Value.of(features.getValue().getValue())
+                                .filter(ProcessHandle.class::isInstance)
+                                .map(ProcessHandle.class::cast)
+                                .map(ProcessHandle::identifier)
+                                .map(Object::toString)
+                                .orElse(null)))
                         .get(),
                     Builder.direct((Supplier<TreeTableColumn<ExecutableHandle, String>>) TreeTableColumn::new)
                         .set(target -> target::setText, bundle.getString("name.wind.tools.process.browser.ProcessListStageController.table.column.name"))
                         .set(target -> target::setMaxWidth, Integer.MAX_VALUE * 20.)
+                        .set(target -> target::setCellFactory, cellFactory)
                         .set(target -> target::setCellValueFactory, features -> new ReadOnlyStringWrapper(
-                            Value.of(features.getValue().getValue()).map(ExecutableHandle::name).orElse("")))
+                            Value.of(features.getValue().getValue())
+                                .map(ExecutableHandle::name)
+                                .orElse(null)))
                         .get(),
                     Builder.direct((Supplier<TreeTableColumn<ExecutableHandle, String>>) TreeTableColumn::new)
                         .set(target -> target::setText, bundle.getString("name.wind.tools.process.browser.ProcessListStageController.table.column.executablePath"))
                         .set(target -> target::setMaxWidth, Integer.MAX_VALUE * 70.)
+                        .set(target -> target::setCellFactory, cellFactory)
                         .set(target -> target::setCellValueFactory, features -> new ReadOnlyStringWrapper(
-                            Value.of(features.getValue().getValue()).map(ExecutableHandle::path).map(Object::toString).orElse("")))
+                            Value.of(features.getValue().getValue())
+                                .map(ExecutableHandle::path)
+                                .map(Object::toString)
+                                .orElse(null)))
                         .get()))
                 .set(target -> target::setRoot, root)
                 .get())
