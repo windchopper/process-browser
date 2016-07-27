@@ -37,6 +37,11 @@ public interface Kernel32Extended extends Kernel32 {
         int TokenElevationTypeLimited = 3;
     }
 
+    int WAIT_ABANDONED = 0x00000080;
+    int WAIT_SIGNALLED = 0x00000000;
+    int WAIT_TIMEOUT   = 0x00000102;
+    int WAIT_FAILED    = 0xffffffff;
+
     class MODULEENTRY32 extends Structure {
         public static class ByReference extends MODULEENTRY32 implements Structure.ByReference {
             public ByReference() {

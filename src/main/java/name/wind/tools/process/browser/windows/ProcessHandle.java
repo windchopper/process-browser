@@ -58,7 +58,7 @@ public class ProcessHandle implements ExecutableHandle {
      *
      */
 
-    public void destroy(int exitCode) {
+    public void terminate(int exitCode) {
         int openFlags = WinNT.PROCESS_VM_READ | WinNT.PROCESS_QUERY_INFORMATION | WinNT.PROCESS_SUSPEND_RESUME | WinNT.PROCESS_TERMINATE | WinNT.SYNCHRONIZE;
         WinNT.HANDLE processHandle = kernel.OpenProcess(openFlags, false, identifier);
         if (processHandle != null) {
@@ -179,7 +179,7 @@ public class ProcessHandle implements ExecutableHandle {
         }
     }
 
-    public static void launchElevated() throws InterruptedException {
+    public static void runElevated() throws InterruptedException, DerivedProcessHasNotSurvivedException {
         WinNT.HANDLE currentProcessHandle = kernel.GetCurrentProcess();
 
         char[] characters = new char[WinDef.MAX_PATH];
@@ -202,7 +202,7 @@ public class ProcessHandle implements ExecutableHandle {
                     kernel.TerminateProcess(currentProcessHandle, 0);
                 } else {
                     kernel.CloseHandle(execInfo.hProcess);
-                    throw new RuntimeException("Elevated process terminates");
+                    throw new DerivedProcessHasNotSurvivedException(exitCode.getValue());
                 }
             } else {
                 throw win32Exception();
