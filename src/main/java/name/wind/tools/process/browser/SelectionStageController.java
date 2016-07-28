@@ -52,7 +52,9 @@ import static java.util.Collections.singletonList;
                         return new ListCell<WindowHandle>() {
                             @Override protected void updateItem(WindowHandle item, boolean empty) {
                                 super.updateItem(item, empty);
-                                setText(empty ? "" : Value.of(item).map(WindowHandle::title).orElse("<нет заголовка>"));
+                                setText(empty ? "" : Value.of(item)
+                                    .map(WindowHandle::title)
+                                    .orElse(bundle.getString("name.wind.tools.process.browser.SelectionStageController.emptyTitle")));
                             }
                         };
                     }
@@ -64,11 +66,10 @@ import static java.util.Collections.singletonList;
                 .set(target -> target::setPadding, new Insets(4, 0, 0, 0))
                 .add(target -> target::getChildren, singletonList(
                     Builder.direct(Button::new)
-                        .set(target -> target::setText, "Select")
+                        .set(target -> target::setText, bundle.getString("name.wind.tools.process.browser.SelectionStageController.select"))
                         .set(target -> target::setDefaultButton, true)
                         .set(target -> target::setOnAction, this::select)
-                        .get()
-                ))
+                        .get()))
                 .get())
             .get();
     }
