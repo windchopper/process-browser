@@ -1,21 +1,17 @@
 package name.wind.tools.process.browser;
 
-import com.sun.jna.Pointer;
-import com.sun.jna.WString;
-import com.sun.jna.platform.win32.Kernel32Util;
 import com.sun.jna.platform.win32.User32;
 import com.sun.jna.platform.win32.Win32Exception;
 import com.sun.jna.platform.win32.WinDef;
 import com.sun.jna.ptr.IntByReference;
 import name.wind.tools.process.browser.windows.ProcessHandle;
+import name.wind.tools.process.browser.windows.WindowHandle;
 import name.wind.tools.process.browser.windows.jna.Kernel32Extended;
-import name.wind.tools.process.browser.windows.jna.Shell32Extended;
 
 import java.util.ArrayList;
-import java.util.Arrays;
 import java.util.List;
 
-public interface WindowsRoutines {
+public interface WindowRoutines {
 
     default String windowTitle(WinDef.HWND hwnd) {
         int bufferLength = User32.INSTANCE.GetWindowTextLength(hwnd);
@@ -34,8 +30,8 @@ public interface WindowsRoutines {
         return null;
     }
 
-    default List<WinDef.HWND> processWindows(ProcessHandle processHandle) {
-        List<WinDef.HWND> windowHandles = new ArrayList<>();
+    default List<WindowHandle> processWindowHandles(ProcessHandle processHandle) {
+        List<WindowHandle> windowHandles = new ArrayList<>();
 
         if (User32.INSTANCE.EnumWindows((hwnd, pointer) -> {
             if (User32.INSTANCE.IsWindowVisible(hwnd)) {
@@ -47,8 +43,9 @@ public interface WindowsRoutines {
                 }
 
                 if (windowProcess.getValue() == processHandle.identifier()) {
-                    System.out.printf("hwnd: %s, title: %s\n", hwnd, windowTitle(hwnd));
-                    windowHandles.add(hwnd);
+                    windowHandles.add(
+                        new WindowHandle(
+                            hwnd, windowTitle(hwnd)));
                 }
             }
 

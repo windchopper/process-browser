@@ -6,14 +6,11 @@ import javafx.stage.Stage;
 public class StageConstructed {
 
     public static final String IDENTIFIER__PROCESS_LIST = "processListStage";
+    public static final String IDENTIFIER__SELECTION = "selectionStage";
 
     private final Stage stage;
     private final String identifier;
     private final Dimension2D preferredSize;
-
-    public StageConstructed(Stage stage, String identifier) {
-        this(stage, identifier, null);
-    }
 
     public StageConstructed(Stage stage, String identifier, Dimension2D preferredSize) {
         this.stage = stage;

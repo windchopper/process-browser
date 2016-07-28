@@ -30,8 +30,8 @@ public class Launcher extends Application {
         weldContainer.getBeanManager().fireEvent(
             new StageConstructed(
                 primaryStage, StageConstructed.IDENTIFIER__PROCESS_LIST, Value.of(Screen.getPrimary().getVisualBounds())
-                .map(visualBounds -> new Dimension2D(visualBounds.getWidth() / 2, visualBounds.getHeight() / 2))
-                .get()),
+                    .map(visualBounds -> new Dimension2D(visualBounds.getWidth() / 2, visualBounds.getHeight() / 2))
+                    .get()),
             new NamedLiteral(
                 StageConstructed.IDENTIFIER__PROCESS_LIST));
     }

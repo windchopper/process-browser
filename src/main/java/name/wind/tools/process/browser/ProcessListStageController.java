@@ -5,23 +5,26 @@ import javafx.beans.binding.Bindings;
 import javafx.beans.binding.BooleanBinding;
 import javafx.beans.property.ReadOnlyStringWrapper;
 import javafx.event.ActionEvent;
+import javafx.geometry.Dimension2D;
 import javafx.scene.Parent;
 import javafx.scene.Scene;
 import javafx.scene.control.*;
 import javafx.scene.layout.BorderPane;
+import javafx.stage.Modality;
+import javafx.stage.Screen;
 import javafx.stage.Stage;
 import javafx.util.Callback;
 import name.wind.common.fx.Action;
 import name.wind.common.util.Builder;
 import name.wind.common.util.Value;
+import name.wind.tools.process.browser.events.SelectionPerformed;
+import name.wind.tools.process.browser.events.SelectionStageConstructed;
 import name.wind.tools.process.browser.events.StageConstructed;
-import name.wind.tools.process.browser.windows.DerivedProcessHasNotSurvivedException;
-import name.wind.tools.process.browser.windows.ExecutableHandle;
-import name.wind.tools.process.browser.windows.ProcessHandle;
-import name.wind.tools.process.browser.windows.ProcessModuleHandle;
+import name.wind.tools.process.browser.windows.*;
 
 import javax.annotation.PostConstruct;
 import javax.enterprise.context.ApplicationScoped;
+import javax.enterprise.event.Event;
 import javax.enterprise.event.Observes;
 import javax.inject.Inject;
 import javax.inject.Named;
@@ -36,11 +39,13 @@ import java.util.stream.Stream;
 import static java.util.Arrays.asList;
 import static java.util.Collections.singletonList;
 
-@ApplicationScoped public class ProcessListStageController extends AbstractStageController implements WindowsRoutines {
+@ApplicationScoped public class ProcessListStageController extends AbstractStageController implements WindowRoutines {
 
     private static final ResourceBundle bundle = ResourceBundle.getBundle("name.wind.tools.process.browser.i18n.messages");
 
     @Inject @Named("single") private Executor executor;
+    @Inject @Named(StageConstructed.IDENTIFIER__SELECTION) private Event<SelectionStageConstructed<WindowHandle>> selectionEvent;
+    @Inject private Event<SelectionPerformed<WindowHandle>> selectionPerformedEvent;
 
     private Action runElevatedAction;
     private Action refreshAction;
@@ -187,8 +192,31 @@ import static java.util.Collections.singletonList;
     private void makeFullscreen(ActionEvent event) {
         TreeItem<ExecutableHandle> selectedItem = processTreeTableView.getSelectionModel().getSelectedItem();
 
-        processWindows(
+        List<WindowHandle> windowHandles = processWindowHandles(
             (ProcessHandle) selectedItem.getValue());
+
+        if (windowHandles.size() > 1) {
+            Platform.runLater(() -> selectionEvent.fire(
+                new SelectionStageConstructed<>(
+                    Builder.direct(Stage::new)
+                        .set(target -> target::initOwner, stage)
+                        .set(target -> target::initModality, Modality.APPLICATION_MODAL)
+                        .set(target -> target::setResizable, false)
+                        .get(),
+                    StageConstructed.IDENTIFIER__SELECTION,
+                    Value.of(Screen.getPrimary().getVisualBounds())
+                        .map(visualBounds -> new Dimension2D(visualBounds.getWidth() / 3, visualBounds.getHeight() / 3))
+                        .get(),
+                    windowHandles)));
+        } else if (windowHandles.size() > 0) {
+            selectionPerformedEvent.fire(
+                new SelectionPerformed<>(windowHandles.get(0)));
+        }
+    }
+
+    protected void windowHandleSelected(@Observes SelectionPerformed<WindowHandle> selectionPerformed) {
+        System.out.println("hwnd: " + selectionPerformed.selectedObject().handle());
+        System.out.println("title: " + selectionPerformed.selectedObject().title());
     }
 
     private void terminate(ActionEvent event) {
@@ -230,7 +258,7 @@ import static java.util.Collections.singletonList;
         return selectedItem != null && selectedItem.getValue() instanceof ProcessHandle;
     }
 
-    public void start(@Observes @Named(StageConstructed.IDENTIFIER__PROCESS_LIST) StageConstructed stageConstructed) {
+    protected void start(@Observes @Named(StageConstructed.IDENTIFIER__PROCESS_LIST) StageConstructed stageConstructed) {
         super.start(
             stageConstructed.stage(),
             stageConstructed.identifier(),
