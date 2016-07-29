@@ -179,7 +179,7 @@ public class ProcessHandle implements ExecutableHandle {
         }
     }
 
-    public static void runElevated() throws InterruptedException, DerivedProcessHasNotSurvivedException {
+    public static boolean runElevated() {
         WinNT.HANDLE currentProcessHandle = kernel.GetCurrentProcess();
 
         char[] characters = new char[WinDef.MAX_PATH];
@@ -195,14 +195,15 @@ public class ProcessHandle implements ExecutableHandle {
         execInfo.nShow = Shell32Extended.SW_SHOWDEFAULT;
 
         if (shell.ShellExecuteEx(execInfo)) {
-            Thread.sleep(TIMEOUT__RELAUNCH_WAIT);
+            kernel.WaitForSingleObject(execInfo.hProcess, TIMEOUT__RELAUNCH_WAIT);
             IntByReference exitCode = new IntByReference();
             if (kernel.GetExitCodeProcess(execInfo.hProcess, exitCode)) {
                 if (exitCode.getValue() == STILL_ACTIVE) {
                     kernel.TerminateProcess(currentProcessHandle, 0);
+                    return true;
                 } else {
                     kernel.CloseHandle(execInfo.hProcess);
-                    throw new DerivedProcessHasNotSurvivedException(exitCode.getValue());
+                    return false;
                 }
             } else {
                 throw win32Exception();

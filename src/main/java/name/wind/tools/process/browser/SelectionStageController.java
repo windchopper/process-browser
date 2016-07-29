@@ -1,6 +1,7 @@
 package name.wind.tools.process.browser;
 
 import javafx.event.ActionEvent;
+import javafx.geometry.Dimension2D;
 import javafx.geometry.Insets;
 import javafx.geometry.Pos;
 import javafx.scene.Parent;
@@ -11,35 +12,29 @@ import javafx.scene.control.ListCell;
 import javafx.scene.control.ListView;
 import javafx.scene.layout.BorderPane;
 import javafx.scene.layout.HBox;
+import javafx.stage.Screen;
 import javafx.stage.Stage;
 import javafx.util.Callback;
 import name.wind.common.util.Builder;
 import name.wind.common.util.Value;
-import name.wind.tools.process.browser.events.SelectionPerformed;
-import name.wind.tools.process.browser.events.SelectionStageConstructed;
-import name.wind.tools.process.browser.events.StageConstructed;
+import name.wind.tools.process.browser.events.FXMLLocation;
 import name.wind.tools.process.browser.windows.WindowHandle;
 
 import javax.enterprise.context.ApplicationScoped;
 import javax.enterprise.event.Event;
-import javax.enterprise.event.Observes;
 import javax.inject.Inject;
-import javax.inject.Named;
-import java.util.List;
-import java.util.ResourceBundle;
 import java.util.function.Supplier;
 
 import static java.util.Collections.singletonList;
 
-@ApplicationScoped public class SelectionStageController extends OldAbstractStageController {
+@ApplicationScoped @FXMLLocation("/name/wind/tools/process/browser/selectionStage.fxml") public class SelectionStageController
+    extends StageController implements ResourceBundleAware {
 
-    private static final ResourceBundle bundle = ResourceBundle.getBundle("name.wind.tools.process.browser.i18n.messages");
-
-    @Inject private Event<SelectionPerformed<WindowHandle>> selectionPerformedEvent;
+//    @Inject private Event<SelectionPerformed<WindowHandle>> selectionPerformedEvent;
 
     private ListView<WindowHandle> selectionListView;
 
-    private Parent buildSceneRoot(List<WindowHandle> windowHandles) {
+    private Parent buildSceneRoot() {
         return Builder.direct(BorderPane::new)
             .set(target -> target::setPadding, new Insets(4, 4, 4, 4))
             .set(target -> target::setTop, Builder.direct(Label::new)
@@ -59,7 +54,7 @@ import static java.util.Collections.singletonList;
                         };
                     }
                 })
-                .add(target -> target::getItems, windowHandles)
+                //.add(target -> target::getItems, windowHandles)
                 .get())
             .set(target -> target::setBottom, Builder.direct(HBox::new)
                 .set(target -> target::setAlignment, Pos.BASELINE_RIGHT)
@@ -76,22 +71,23 @@ import static java.util.Collections.singletonList;
 
     private void select(ActionEvent event) {
         stage.hide();
-        selectionPerformedEvent.fire(
-            new SelectionPerformed<>(
-                selectionListView.getSelectionModel().getSelectedItem()));
+//        selectionPerformedEvent.fire(
+//            new SelectionPerformed<>(
+//                selectionListView.getSelectionModel().getSelectedItem()));
     }
 
-    protected void start(@Observes @Named(StageConstructed.IDENTIFIER__SELECTION) SelectionStageConstructed<WindowHandle> stageConstructed) {
-        super.start(
-            stageConstructed.stage(),
-            stageConstructed.identifier(),
-            stageConstructed.preferredSize());
+    @Override protected Dimension2D preferredStageSize() {
+        return Value.of(Screen.getPrimary().getVisualBounds())
+            .map(visualBounds -> new Dimension2D(visualBounds.getWidth() / 3, visualBounds.getHeight() / 3))
+            .get();
+    }
+
+    @Override protected void start(Stage stage, String identifier) {
+        super.start(stage, identifier);
 
         Stage selectionStage = Builder.direct(() -> stage)
             .set(target -> target::setTitle, bundle.getString("name.wind.tools.process.browser.SelectionStageController.title"))
-            .set(target -> target::setScene, Builder.direct(() -> new Scene(buildSceneRoot(stageConstructed.objects())))
-                .add(target -> target::getStylesheets, singletonList("/name/wind/tools/process/browser/selectionStage.css"))
-                .get())
+            .set(target -> target::setScene, new Scene(buildSceneRoot()))
             .get();
 
         selectionStage.show();

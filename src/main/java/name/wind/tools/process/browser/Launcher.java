@@ -23,13 +23,6 @@ public class Launcher extends Application {
     }
 
     @Override public void start(Stage primaryStage) throws Exception {
-//        weldContainer.getBeanManager().fireEvent(
-//            new StageConstructed(
-//                primaryStage, StageConstructed.IDENTIFIER__PROCESS_LIST, Value.of(Screen.getPrimary().getVisualBounds())
-//                    .map(visualBounds -> new Dimension2D(visualBounds.getWidth() / 2, visualBounds.getHeight() / 2))
-//                    .get()),
-//            new NamedLiteral(
-//                StageConstructed.IDENTIFIER__PROCESS_LIST));
         weldContainer.getBeanManager().fireEvent(
             new FormOpen(primaryStage, "/name/wind/tools/process/browser/processListStage.fxml"));
     }

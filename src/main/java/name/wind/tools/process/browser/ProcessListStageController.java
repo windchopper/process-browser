@@ -9,36 +9,25 @@ import javafx.event.ActionEvent;
 import javafx.fxml.FXML;
 import javafx.geometry.Dimension2D;
 import javafx.scene.control.*;
-import javafx.stage.Modality;
 import javafx.stage.Screen;
 import javafx.stage.Stage;
-import name.wind.common.util.Builder;
 import name.wind.common.util.Value;
 import name.wind.tools.process.browser.events.FXMLLocation;
-import name.wind.tools.process.browser.events.SelectionPerformed;
-import name.wind.tools.process.browser.events.SelectionStageConstructed;
-import name.wind.tools.process.browser.events.StageConstructed;
 import name.wind.tools.process.browser.windows.ExecutableHandle;
 import name.wind.tools.process.browser.windows.ProcessHandle;
 import name.wind.tools.process.browser.windows.WindowHandle;
 
 import javax.enterprise.context.ApplicationScoped;
-import javax.enterprise.event.Event;
 import javax.enterprise.event.Observes;
-import javax.inject.Inject;
-import javax.inject.Named;
 import java.util.Collection;
 import java.util.List;
-import java.util.concurrent.ExecutionException;
-import java.util.concurrent.Executor;
-import java.util.concurrent.FutureTask;
 import java.util.stream.Stream;
 
 @ApplicationScoped @FXMLLocation("/name/wind/tools/process/browser/processListStage.fxml") public class ProcessListStageController
     extends StageController implements ResourceBundleAware, WindowRoutines {
 
-    @Inject @Named(StageConstructed.IDENTIFIER__SELECTION) protected Event<SelectionStageConstructed<WindowHandle>> selectionEvent;
-    @Inject protected Event<SelectionPerformed<WindowHandle>> selectionPerformedEvent;
+    //@Inject @Named(FormShow.IDENTIFIER__SELECTION) protected Event<SelectionStageConstructed<WindowHandle>> selectionEvent;
+    //@Inject protected Event<SelectionPerformed<WindowHandle>> selectionPerformedEvent;
 
     @FXML protected TreeTableView<ExecutableHandle> processTreeTableView;
     @FXML protected TextField filterTextField;
@@ -110,28 +99,28 @@ import java.util.stream.Stream;
             (ProcessHandle) selectedItem.getValue());
 
         if (windowHandles.size() > 1) {
-            Platform.runLater(() -> selectionEvent.fire(
-                new SelectionStageConstructed<>(
-                    Builder.direct(Stage::new)
-                        .set(target -> target::initOwner, stage)
-                        .set(target -> target::initModality, Modality.APPLICATION_MODAL)
-                        .set(target -> target::setResizable, false)
-                        .get(),
-                    StageConstructed.IDENTIFIER__SELECTION,
-                    Value.of(Screen.getPrimary().getVisualBounds())
-                        .map(visualBounds -> new Dimension2D(visualBounds.getWidth() / 3, visualBounds.getHeight() / 3))
-                        .get(),
-                    windowHandles)));
+//            Platform.runLater(() -> selectionEvent.fire(
+//                new SelectionStageConstructed<>(
+//                    Builder.direct(Stage::new)
+//                        .set(target -> target::initOwner, stage)
+//                        .set(target -> target::initModality, Modality.APPLICATION_MODAL)
+//                        .set(target -> target::setResizable, false)
+//                        .get(),
+//                    FormShow.IDENTIFIER__SELECTION,
+//                    Value.of(Screen.getPrimary().getVisualBounds())
+//                        .map(visualBounds -> new Dimension2D(visualBounds.getWidth() / 3, visualBounds.getHeight() / 3))
+//                        .get(),
+//                    windowHandles)));
         } else if (windowHandles.size() > 0) {
-            selectionPerformedEvent.fire(
-                new SelectionPerformed<>(windowHandles.get(0)));
+//            selectionPerformedEvent.fire(
+//                new SelectionPerformed<>(windowHandles.get(0)));
         }
     }
 
-    protected void windowHandleSelected(@Observes SelectionPerformed<WindowHandle> selectionPerformed) {
-        System.out.println("hwnd: " + selectionPerformed.selectedObject().handle());
-        System.out.println("title: " + selectionPerformed.selectedObject().title());
-    }
+//    protected void windowHandleSelected(@Observes SelectionPerformed<WindowHandle> selectionPerformed) {
+//        System.out.println("hwnd: " + selectionPerformed.selectedObject().handle());
+//        System.out.println("title: " + selectionPerformed.selectedObject().title());
+//    }
 
     @FXML protected void terminate(ActionEvent event) {
         TreeItem<ExecutableHandle> selectedItem = processTreeTableView.getSelectionModel().getSelectedItem();
