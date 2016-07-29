@@ -7,15 +7,16 @@ import javafx.stage.Stage;
 import javafx.stage.Window;
 import name.wind.common.fx.behavior.WindowApplyStoredBoundsBehavior;
 
+import java.util.Map;
+
 import static java.util.Arrays.stream;
 
 public abstract class StageController {
 
     protected final WidgetSearch widgetSearch = new WidgetSearch();
-
     protected Stage stage;
 
-    protected void start(Stage stage, String identifier) {
+    protected void start(Stage stage, String identifier, Map<String, Object> parameters) {
         new WindowApplyStoredBoundsBehavior(identifier, this::initializeBounds)
             .apply(this.stage = stage);
 

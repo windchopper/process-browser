@@ -9,18 +9,25 @@ import javafx.event.ActionEvent;
 import javafx.fxml.FXML;
 import javafx.geometry.Dimension2D;
 import javafx.scene.control.*;
+import javafx.stage.Modality;
 import javafx.stage.Screen;
 import javafx.stage.Stage;
+import name.wind.common.util.Builder;
 import name.wind.common.util.Value;
+import name.wind.tools.process.browser.events.FXMLFormOpen;
 import name.wind.tools.process.browser.events.FXMLLocation;
 import name.wind.tools.process.browser.windows.ExecutableHandle;
 import name.wind.tools.process.browser.windows.ProcessHandle;
 import name.wind.tools.process.browser.windows.WindowHandle;
 
 import javax.enterprise.context.ApplicationScoped;
-import javax.enterprise.event.Observes;
+import javax.enterprise.event.Event;
+import javax.inject.Inject;
 import java.util.Collection;
+import java.util.HashMap;
 import java.util.List;
+import java.util.Map;
+import java.util.function.Supplier;
 import java.util.stream.Stream;
 
 @ApplicationScoped @FXMLLocation("/name/wind/tools/process/browser/processListStage.fxml") public class ProcessListStageController
@@ -34,11 +41,13 @@ import java.util.stream.Stream;
     @FXML protected MenuItem makeFullscreenMenuItem;
     @FXML protected MenuItem terminateMenuItem;
 
+    @Inject private Event<FXMLFormOpen> fxmlFormOpenEvent;
+
     protected final ExecutableHandleSearch processSearch = new ExecutableHandleSearch();
     protected List<ProcessHandle> lastLoadedProcessHandles;
 
-    @Override protected void start(Stage stage, String identifier) {
-        super.start(stage, identifier);
+    @Override protected void start(Stage stage, String identifier, Map<String, Object> parameters) {
+        super.start(stage, identifier, parameters);
 
         TreeItem<ExecutableHandle> processTreeRoot = new TreeItem<>(null);
         processTreeRoot.setExpanded(true);
@@ -99,18 +108,17 @@ import java.util.stream.Stream;
             (ProcessHandle) selectedItem.getValue());
 
         if (windowHandles.size() > 1) {
-//            Platform.runLater(() -> selectionEvent.fire(
-//                new SelectionStageConstructed<>(
-//                    Builder.direct(Stage::new)
-//                        .set(target -> target::initOwner, stage)
-//                        .set(target -> target::initModality, Modality.APPLICATION_MODAL)
-//                        .set(target -> target::setResizable, false)
-//                        .get(),
-//                    FormShow.IDENTIFIER__SELECTION,
-//                    Value.of(Screen.getPrimary().getVisualBounds())
-//                        .map(visualBounds -> new Dimension2D(visualBounds.getWidth() / 3, visualBounds.getHeight() / 3))
-//                        .get(),
-//                    windowHandles)));
+            fxmlFormOpenEvent.fire(
+                new FXMLFormOpen(
+                    Builder.direct(Stage::new)
+                        .set(target -> target::initOwner, stage)
+                        .set(target -> target::initModality, Modality.APPLICATION_MODAL)
+                        .set(target -> target::setResizable, false)
+                        .get(),
+                    "/name/wind/tools/process/browser/selectionStage.fxml",
+                    Builder.directMapBuilder((Supplier<Map<String, Object>>) HashMap::new)
+                        .set(map -> value -> map.put("windowHandles", value), windowHandles)
+                        .get()));
         } else if (windowHandles.size() > 0) {
 //            selectionPerformedEvent.fire(
 //                new SelectionPerformed<>(windowHandles.get(0)));

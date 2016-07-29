@@ -23,6 +23,7 @@ import name.wind.tools.process.browser.windows.WindowHandle;
 import javax.enterprise.context.ApplicationScoped;
 import javax.enterprise.event.Event;
 import javax.inject.Inject;
+import java.util.Map;
 import java.util.function.Supplier;
 
 import static java.util.Collections.singletonList;
@@ -33,41 +34,6 @@ import static java.util.Collections.singletonList;
 //    @Inject private Event<SelectionPerformed<WindowHandle>> selectionPerformedEvent;
 
     private ListView<WindowHandle> selectionListView;
-
-    private Parent buildSceneRoot() {
-        return Builder.direct(BorderPane::new)
-            .set(target -> target::setPadding, new Insets(4, 4, 4, 4))
-            .set(target -> target::setTop, Builder.direct(Label::new)
-                .set(target -> target::setText, bundle.getString("name.wind.tools.process.browser.SelectionStageController.label"))
-                .set(target -> target::setPadding, new Insets(10, 8, 10, 8))
-                .get())
-            .set(target -> target::setCenter, selectionListView = Builder.direct((Supplier<ListView<WindowHandle>>) ListView::new)
-                .set(target -> target::setCellFactory, new Callback<ListView<WindowHandle>, ListCell<WindowHandle>>() {
-                    @Override public ListCell<WindowHandle> call(ListView<WindowHandle> listView) {
-                        return new ListCell<WindowHandle>() {
-                            @Override protected void updateItem(WindowHandle item, boolean empty) {
-                                super.updateItem(item, empty);
-                                setText(empty ? "" : Value.of(item)
-                                    .map(WindowHandle::title)
-                                    .orElse(bundle.getString("name.wind.tools.process.browser.SelectionStageController.emptyTitle")));
-                            }
-                        };
-                    }
-                })
-                //.add(target -> target::getItems, windowHandles)
-                .get())
-            .set(target -> target::setBottom, Builder.direct(HBox::new)
-                .set(target -> target::setAlignment, Pos.BASELINE_RIGHT)
-                .set(target -> target::setPadding, new Insets(4, 0, 0, 0))
-                .add(target -> target::getChildren, singletonList(
-                    Builder.direct(Button::new)
-                        .set(target -> target::setText, bundle.getString("name.wind.tools.process.browser.SelectionStageController.select"))
-                        .set(target -> target::setDefaultButton, true)
-                        .set(target -> target::setOnAction, this::select)
-                        .get()))
-                .get())
-            .get();
-    }
 
     private void select(ActionEvent event) {
         stage.hide();
@@ -81,17 +47,5 @@ import static java.util.Collections.singletonList;
             .map(visualBounds -> new Dimension2D(visualBounds.getWidth() / 3, visualBounds.getHeight() / 3))
             .get();
     }
-
-    @Override protected void start(Stage stage, String identifier) {
-        super.start(stage, identifier);
-
-        Stage selectionStage = Builder.direct(() -> stage)
-            .set(target -> target::setTitle, bundle.getString("name.wind.tools.process.browser.SelectionStageController.title"))
-            .set(target -> target::setScene, new Scene(buildSceneRoot()))
-            .get();
-
-        selectionStage.show();
-    }
-
 
 }
