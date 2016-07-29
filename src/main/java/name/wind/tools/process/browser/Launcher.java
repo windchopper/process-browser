@@ -1,14 +1,10 @@
 package name.wind.tools.process.browser;
 
 import javafx.application.Application;
-import javafx.geometry.Dimension2D;
-import javafx.stage.Screen;
 import javafx.stage.Stage;
-import name.wind.common.util.Value;
-import name.wind.tools.process.browser.events.StageConstructed;
+import name.wind.tools.process.browser.events.FormOpen;
 import org.jboss.weld.environment.se.Weld;
 import org.jboss.weld.environment.se.WeldContainer;
-import org.jboss.weld.literal.NamedLiteral;
 
 public class Launcher extends Application {
 
@@ -27,13 +23,15 @@ public class Launcher extends Application {
     }
 
     @Override public void start(Stage primaryStage) throws Exception {
+//        weldContainer.getBeanManager().fireEvent(
+//            new StageConstructed(
+//                primaryStage, StageConstructed.IDENTIFIER__PROCESS_LIST, Value.of(Screen.getPrimary().getVisualBounds())
+//                    .map(visualBounds -> new Dimension2D(visualBounds.getWidth() / 2, visualBounds.getHeight() / 2))
+//                    .get()),
+//            new NamedLiteral(
+//                StageConstructed.IDENTIFIER__PROCESS_LIST));
         weldContainer.getBeanManager().fireEvent(
-            new StageConstructed(
-                primaryStage, StageConstructed.IDENTIFIER__PROCESS_LIST, Value.of(Screen.getPrimary().getVisualBounds())
-                    .map(visualBounds -> new Dimension2D(visualBounds.getWidth() / 2, visualBounds.getHeight() / 2))
-                    .get()),
-            new NamedLiteral(
-                StageConstructed.IDENTIFIER__PROCESS_LIST));
+            new FormOpen(primaryStage, "/name/wind/tools/process/browser/processListStage.fxml"));
     }
 
     /*

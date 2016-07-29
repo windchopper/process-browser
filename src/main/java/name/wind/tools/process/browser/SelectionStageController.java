@@ -31,7 +31,7 @@ import java.util.function.Supplier;
 
 import static java.util.Collections.singletonList;
 
-@ApplicationScoped public class SelectionStageController extends AbstractStageController {
+@ApplicationScoped public class SelectionStageController extends OldAbstractStageController {
 
     private static final ResourceBundle bundle = ResourceBundle.getBundle("name.wind.tools.process.browser.i18n.messages");
 

@@ -1,176 +1,90 @@
 package name.wind.tools.process.browser;
 
+import com.sun.jna.platform.win32.Win32Exception;
 import javafx.application.Platform;
 import javafx.beans.binding.Bindings;
 import javafx.beans.binding.BooleanBinding;
-import javafx.beans.property.ReadOnlyStringWrapper;
+import javafx.beans.value.ObservableValue;
 import javafx.event.ActionEvent;
+import javafx.fxml.FXML;
 import javafx.geometry.Dimension2D;
-import javafx.scene.Parent;
-import javafx.scene.Scene;
 import javafx.scene.control.*;
-import javafx.scene.layout.BorderPane;
 import javafx.stage.Modality;
 import javafx.stage.Screen;
 import javafx.stage.Stage;
-import javafx.util.Callback;
-import name.wind.common.fx.Action;
 import name.wind.common.util.Builder;
 import name.wind.common.util.Value;
+import name.wind.tools.process.browser.events.FXMLLocation;
 import name.wind.tools.process.browser.events.SelectionPerformed;
 import name.wind.tools.process.browser.events.SelectionStageConstructed;
 import name.wind.tools.process.browser.events.StageConstructed;
-import name.wind.tools.process.browser.windows.*;
+import name.wind.tools.process.browser.windows.ExecutableHandle;
+import name.wind.tools.process.browser.windows.ProcessHandle;
+import name.wind.tools.process.browser.windows.WindowHandle;
 
-import javax.annotation.PostConstruct;
 import javax.enterprise.context.ApplicationScoped;
 import javax.enterprise.event.Event;
 import javax.enterprise.event.Observes;
 import javax.inject.Inject;
 import javax.inject.Named;
+import java.util.Collection;
 import java.util.List;
-import java.util.ResourceBundle;
 import java.util.concurrent.ExecutionException;
 import java.util.concurrent.Executor;
 import java.util.concurrent.FutureTask;
-import java.util.function.Supplier;
 import java.util.stream.Stream;
 
-import static java.util.Arrays.asList;
-import static java.util.Collections.singletonList;
+@ApplicationScoped @FXMLLocation("/name/wind/tools/process/browser/processListStage.fxml") public class ProcessListStageController
+    extends StageController implements ResourceBundleAware, WindowRoutines {
 
-@ApplicationScoped public class ProcessListStageController extends AbstractStageController implements WindowRoutines {
+    @Inject @Named(StageConstructed.IDENTIFIER__SELECTION) protected Event<SelectionStageConstructed<WindowHandle>> selectionEvent;
+    @Inject protected Event<SelectionPerformed<WindowHandle>> selectionPerformedEvent;
 
-    private static final ResourceBundle bundle = ResourceBundle.getBundle("name.wind.tools.process.browser.i18n.messages");
+    @FXML protected TreeTableView<ExecutableHandle> processTreeTableView;
+    @FXML protected TextField filterTextField;
+    @FXML protected MenuItem makeFullscreenMenuItem;
+    @FXML protected MenuItem terminateMenuItem;
 
-    @Inject @Named("single") private Executor executor;
-    @Inject @Named(StageConstructed.IDENTIFIER__SELECTION) private Event<SelectionStageConstructed<WindowHandle>> selectionEvent;
-    @Inject private Event<SelectionPerformed<WindowHandle>> selectionPerformedEvent;
+    protected final ExecutableHandleSearch processSearch = new ExecutableHandleSearch();
+    protected List<ProcessHandle> lastLoadedProcessHandles;
 
-    private Action runElevatedAction;
-    private Action refreshAction;
-    private Action makeFullscreenAction;
-    private Action terminateAction;
-    private TreeTableView<ExecutableHandle> processTreeTableView;
+    @Override protected void start(Stage stage, String identifier) {
+        super.start(stage, identifier);
 
-    @PostConstruct protected void initialize() {
-        runElevatedAction = Builder.direct(Action::new)
-            .set(target -> target.textProperty()::set, bundle.getString("name.wind.tools.process.browser.ProcessListStageController.toolBar.button.runElevated"))
-            .set(target -> target::setHandler, this::runElevated)
-            .set(target -> target::setExecutor, executor)
-            .get();
-        refreshAction = Builder.direct(Action::new)
-            .set(target -> target.textProperty()::set, bundle.getString("name.wind.tools.process.browser.ProcessListStageController.toolBar.button.refresh"))
-            .set(target -> target::setHandler, this::refresh)
-            .set(target -> target::setExecutor, executor)
-            .get();
-        makeFullscreenAction = Builder.direct(Action::new)
-            .set(target -> target.textProperty()::set, bundle.getString("name.wind.tools.process.browser.ProcessListStageController.toolBar.button.makeFullscreen"))
-            .set(target -> target::setHandler, this::makeFullscreen)
-            .set(target -> target::setExecutor, executor)
-            .get();
-        terminateAction = Builder.direct(Action::new)
-            .set(target -> target.textProperty()::set, bundle.getString("name.wind.tools.process.browser.ProcessListStageController.toolBar.button.terminate"))
-            .set(target -> target::setHandler, this::terminate)
-            .set(target -> target::setExecutor, executor)
+        TreeItem<ExecutableHandle> processTreeRoot = new TreeItem<>(null);
+        processTreeRoot.setExpanded(true);
+
+        loadProcessTree(processTreeRoot, lastLoadedProcessHandles = ProcessHandle.allAvailable());
+
+        processTreeTableView.setRoot(processTreeRoot);
+        processTreeTableView.requestFocus();
+
+        BooleanBinding selectionIsProcessHandle = Bindings.createBooleanBinding(
+            this::selectionIsProcessHandle, processTreeTableView.getSelectionModel().selectedItemProperty());
+        Stream.of(makeFullscreenMenuItem, terminateMenuItem).forEach(
+            menuItem -> menuItem.disableProperty().bind(selectionIsProcessHandle.not()));
+
+        filterTextField.textProperty().addListener(this::filterTextChanged);
+    }
+
+    @Override protected Dimension2D preferredStageSize() {
+        return Value.of(Screen.getPrimary().getVisualBounds())
+            .map(visualBounds -> new Dimension2D(visualBounds.getWidth() / 2, visualBounds.getHeight() / 2))
             .get();
     }
 
-    private Parent buildSceneRoot() {
-        TreeItem<ExecutableHandle> root = new TreeItem<>(null);
-        root.setExpanded(true);
+    protected void filterTextChanged(ObservableValue<? extends String> property, String oldValue, String newValue) {
+        ExecutableHandleSearch.Continuation continuation = new ExecutableHandleSearch.Continuation();
 
-        loadProcessTree(root);
+        processSearch.search(
+            continuation,
+            object -> object instanceof ExecutableHandle && ((ExecutableHandle) object).name().toLowerCase().contains(newValue.toLowerCase()),
+            lastLoadedProcessHandles);
 
-        Callback<TreeTableColumn<ExecutableHandle, String>, TreeTableCell<ExecutableHandle, String>> cellFactory = column -> new TreeTableCell<ExecutableHandle, String>() {
-            @Override protected void updateItem(String item, boolean empty) {
-                super.updateItem(item, empty);
-                setText(item);
-                TreeTableRow<ExecutableHandle> row = getTreeTableRow();
-                setStyle(row.getTreeItem() != null && row.getTreeItem().getValue() instanceof ProcessModuleHandle
-                    ? "-fx-text-fill: #3b3b3b; -fx-font-style: italic"
-                    : "-fx-text-fill: #000000; -fx-font-style: normal");
-            }
-        };
-
-        return Builder.direct(BorderPane::new)
-            .set(target -> target::setTop, Builder.direct(ToolBar::new)
-                .add(target -> target::getItems, asList(
-                    Builder.direct(Button::new)
-                        .accept(runElevatedAction::bind)
-                        .get(),
-                    Builder.direct(Button::new)
-                        .accept(refreshAction::bind)
-                        .get(),
-                    Builder.direct(Separator::new)
-                        .get(),
-                    Builder.direct(Button::new)
-                        .accept(makeFullscreenAction::bind)
-                        .get(),
-                    Builder.direct(Button::new)
-                        .accept(terminateAction::bind)
-                        .get()))
-                .get())
-            .set(target -> target::setCenter, processTreeTableView = Builder.direct(TreeTableView<ExecutableHandle>::new)
-                .set(target -> target.getSelectionModel()::setSelectionMode, SelectionMode.SINGLE)
-                .set(target -> target::setShowRoot, false)
-                .set(target -> target::setColumnResizePolicy, TreeTableView.CONSTRAINED_RESIZE_POLICY)
-                .add(target -> target::getColumns, asList(
-                    Builder.direct((Supplier<TreeTableColumn<ExecutableHandle, String>>) TreeTableColumn::new)
-                        .set(target -> target::setText, bundle.getString("name.wind.tools.process.browser.ProcessListStageController.table.column.identifier"))
-                        .set(target -> target::setMaxWidth, Integer.MAX_VALUE * 10.)
-                        .set(target -> target::setCellValueFactory, features -> new ReadOnlyStringWrapper(
-                            Value.of(features.getValue().getValue())
-                                .filter(ProcessHandle.class::isInstance)
-                                .map(ProcessHandle.class::cast)
-                                .map(ProcessHandle::identifier)
-                                .map(Object::toString)
-                                .orElse(null)))
-                        .get(),
-                    Builder.direct((Supplier<TreeTableColumn<ExecutableHandle, String>>) TreeTableColumn::new)
-                        .set(target -> target::setText, bundle.getString("name.wind.tools.process.browser.ProcessListStageController.table.column.name"))
-                        .set(target -> target::setMaxWidth, Integer.MAX_VALUE * 20.)
-                        .set(target -> target::setCellFactory, cellFactory)
-                        .set(target -> target::setCellValueFactory, features -> new ReadOnlyStringWrapper(
-                            Value.of(features.getValue().getValue())
-                                .map(ExecutableHandle::name)
-                                .orElse(null)))
-                        .get(),
-                    Builder.direct((Supplier<TreeTableColumn<ExecutableHandle, String>>) TreeTableColumn::new)
-                        .set(target -> target::setText, bundle.getString("name.wind.tools.process.browser.ProcessListStageController.table.column.executablePath"))
-                        .set(target -> target::setMaxWidth, Integer.MAX_VALUE * 70.)
-                        .set(target -> target::setCellFactory, cellFactory)
-                        .set(target -> target::setCellValueFactory, features -> new ReadOnlyStringWrapper(
-                            Value.of(features.getValue().getValue())
-                                .map(ExecutableHandle::path)
-                                .map(Object::toString)
-                                .orElse(null)))
-                        .get()))
-                .set(target -> target::setRoot, root)
-                .get())
-            .get();
+        loadProcessTree(processTreeTableView.getRoot(), continuation.searchResult());
     }
 
-    private void runElevated(ActionEvent event) {
-        Value<String> errorMessage = Value.empty();
-
-        try {
-            ProcessHandle.runElevated();
-        } catch (InterruptedException thrown) {
-            errorMessage = Value.of(bundle.getString("name.wind.tools.process.browser.ProcessListStageController.error.interrupted"));
-        } catch (DerivedProcessHasNotSurvivedException thrown) {
-            errorMessage = Value.of(bundle.getString("name.wind.tools.process.browser.ProcessListStageController.error.derivedProcessHasNotSurvived"));
-        }
-
-        errorMessage.ifPresent(message -> Platform.runLater(() -> {
-            Alert alert = new Alert(Alert.AlertType.ERROR);
-            alert.setHeaderText(message);
-            alert.show();
-        }));
-    }
-
-    private void loadProcessTree(TreeItem<ExecutableHandle> root) {
-        List<ProcessHandle> processHandles = ProcessHandle.allAvailable();
+    protected void loadProcessTree(TreeItem<ExecutableHandle> root, Collection<ProcessHandle> processHandles) {
         Platform.runLater(() -> {
             root.getChildren().clear();
             processHandles
@@ -185,11 +99,11 @@ import static java.util.Collections.singletonList;
         });
     }
 
-    private void refresh(ActionEvent event) {
-        loadProcessTree(processTreeTableView.getRoot());
+    @FXML protected void refresh(ActionEvent event) {
+        loadProcessTree(processTreeTableView.getRoot(), lastLoadedProcessHandles = ProcessHandle.allAvailable());
     }
 
-    private void makeFullscreen(ActionEvent event) {
+    @FXML protected void makeFullscreen(ActionEvent event) {
         TreeItem<ExecutableHandle> selectedItem = processTreeTableView.getSelectionModel().getSelectedItem();
 
         List<WindowHandle> windowHandles = processWindowHandles(
@@ -219,67 +133,39 @@ import static java.util.Collections.singletonList;
         System.out.println("title: " + selectionPerformed.selectedObject().title());
     }
 
-    private void terminate(ActionEvent event) {
+    @FXML protected void terminate(ActionEvent event) {
         TreeItem<ExecutableHandle> selectedItem = processTreeTableView.getSelectionModel().getSelectedItem();
 
-        FutureTask<Boolean> confirmationTask = new FutureTask<>(() -> {
-            Alert alert = new Alert(Alert.AlertType.CONFIRMATION, null, ButtonType.YES, ButtonType.NO);
-            alert.setHeaderText(bundle.getString("name.wind.tools.process.browser.ProcessListStageController.confirm.terminate"));
-            return alert.showAndWait()
-                .map(choice -> choice == ButtonType.YES)
-                .orElse(false);
-        });
+        Alert confirmationAlert = new Alert(Alert.AlertType.CONFIRMATION, null, ButtonType.YES, ButtonType.NO);
+        confirmationAlert.initOwner(stage);
+        confirmationAlert.setHeaderText(bundle.getString("name.wind.tools.process.browser.ProcessListStageController.confirm.terminate"));
+        boolean terminate = confirmationAlert.showAndWait()
+            .map(choice -> choice == ButtonType.YES)
+            .orElse(false);
 
-        Platform.runLater(confirmationTask);
         Value<String> errorMessage = Value.empty();
 
         try {
-            if (confirmationTask.get()) {
+            if (terminate) {
                 ProcessHandle processHandle = (ProcessHandle) selectedItem.getValue();
                 processHandle.terminate(0);
 
                 selectedItem.getParent().getChildren().remove(selectedItem);
             }
-        } catch (InterruptedException thrown) {
-            errorMessage = Value.of(bundle.getString("name.wind.tools.process.browser.ProcessListStageController.error.interrupted"));
-        } catch (ExecutionException thrown) {
+        } catch (Win32Exception thrown) {
             errorMessage = Value.of(String.format(bundle.getString("name.wind.tools.process.browser.ProcessListStageController.error.unexpected"), thrown.getMessage()));
         }
 
         errorMessage.ifPresent(message -> Platform.runLater(() -> {
-            Alert alert = new Alert(Alert.AlertType.ERROR);
-            alert.setHeaderText(message);
-            alert.show();
+            Alert errorAlert = new Alert(Alert.AlertType.ERROR);
+            errorAlert.setHeaderText(message);
+            errorAlert.show();
         }));
     }
 
-    private boolean selectionIsProcessHandle() {
+    protected boolean selectionIsProcessHandle() {
         TreeItem<ExecutableHandle> selectedItem = processTreeTableView.getSelectionModel().getSelectedItem();
         return selectedItem != null && selectedItem.getValue() instanceof ProcessHandle;
-    }
-
-    protected void start(@Observes @Named(StageConstructed.IDENTIFIER__PROCESS_LIST) StageConstructed stageConstructed) {
-        super.start(
-            stageConstructed.stage(),
-            stageConstructed.identifier(),
-            stageConstructed.preferredSize());
-
-        Stage processListStage = Builder.direct(() -> stage)
-            .set(target -> target::setTitle, bundle.getString("name.wind.tools.process.browser.ProcessListStageController.title"))
-            .set(target -> target::setScene, Builder.direct(() -> new Scene(buildSceneRoot()))
-                .add(target -> target::getStylesheets, singletonList("/name/wind/tools/process/browser/processListStage.css"))
-                .get())
-            .get();
-
-        BooleanBinding selectionIsProcessHandle = Bindings.createBooleanBinding(
-            this::selectionIsProcessHandle, processTreeTableView.getSelectionModel().selectedItemProperty());
-        Stream.of(makeFullscreenAction, terminateAction).forEach(
-            action -> action.disabledProperty().bind(selectionIsProcessHandle.not()));
-
-        runElevatedAction.disabledProperty().set(
-            ProcessHandle.hasAdministrativeRights() && ProcessHandle.elevated());
-
-        processListStage.show();
     }
 
 }

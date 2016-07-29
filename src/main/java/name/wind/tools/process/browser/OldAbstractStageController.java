@@ -7,7 +7,7 @@ import javafx.stage.Window;
 import name.wind.common.fx.behavior.WindowApplyStoredBoundsBehavior;
 import name.wind.common.util.Value;
 
-public abstract class AbstractStageController {
+public abstract class OldAbstractStageController {
 
     protected Stage stage;
 
