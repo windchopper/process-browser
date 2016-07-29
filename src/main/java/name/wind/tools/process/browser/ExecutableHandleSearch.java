@@ -9,14 +9,18 @@ import name.wind.tools.process.browser.windows.ProcessModuleHandle;
 import java.util.ArrayList;
 import java.util.List;
 
-public class ExecutableHandleSearch extends Search<Object> {
+import static java.util.Collections.emptyList;
+import static java.util.Collections.singletonList;
+
+public class ExecutableHandleSearch extends Search {
 
     public ExecutableHandleSearch() {
-        addInteriorExposer(object -> object instanceof List, object -> (List) object);
-        // addInteriorExposer(object -> object instanceof ProcessHandle, object -> ((ProcessHandle) object).modules());
+        super(singletonList(
+            object -> object instanceof List ? (List) object : emptyList()
+        ));
     }
 
-    public static class Continuation implements SearchContinuation<Object, Object> {
+    public static class Continuation implements SearchContinuation<Object> {
 
         private final List<ProcessHandle> searchResult = new ArrayList<>();
 

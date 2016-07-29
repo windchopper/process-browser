@@ -8,18 +8,22 @@ import name.wind.common.search.Search;
 import name.wind.common.search.SearchContinuation;
 import name.wind.common.search.SearchStoppedException;
 
+import static java.util.Arrays.asList;
+import static java.util.Collections.emptyList;
 import static java.util.Collections.singletonList;
 
-public class WidgetSearch extends Search<Object> {
+public class WidgetSearch extends Search {
 
     public WidgetSearch() {
-        addInteriorExposer(object -> object instanceof Scene, object -> singletonList(((Scene) object).getRoot()));
-        addInteriorExposer(object -> object instanceof ContextMenu, object -> ((ContextMenu) object).getItems());
-        addInteriorExposer(object -> object instanceof Pane, object -> ((Pane) object).getChildren());
-        addInteriorExposer(object -> object instanceof Control, object -> singletonList(((Control) object).getContextMenu()));
+        super(asList(
+            object -> object instanceof Scene ? singletonList(((Scene) object).getRoot()) : emptyList(),
+            object -> object instanceof ContextMenu ? ((ContextMenu) object).getItems() : emptyList(),
+            object -> object instanceof Pane ? ((Pane) object).getChildren() : emptyList(),
+            object -> object instanceof Control ? singletonList(((Control) object).getContextMenu()) : emptyList()
+        ));
     }
 
-    public static class Continuation implements SearchContinuation<Object, Object> {
+    public static class Continuation implements SearchContinuation<Object> {
 
         private Object searchResult;
 
