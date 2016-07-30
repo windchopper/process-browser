@@ -1,7 +1,6 @@
 package name.wind.tools.process.browser;
 
 import com.sun.jna.platform.win32.Win32Exception;
-import javafx.application.Platform;
 import javafx.beans.binding.Bindings;
 import javafx.beans.binding.BooleanBinding;
 import javafx.beans.value.ObservableValue;
@@ -76,33 +75,39 @@ import java.util.stream.Stream;
     }
 
     private void filterTextChanged(ObservableValue<? extends String> property, String oldValue, String newValue) {
+        applyFilter(newValue);
+    }
+
+    private void applyFilter(String filterString) {
         ExecutableHandleSearch.Continuation continuation = new ExecutableHandleSearch.Continuation();
 
         processSearch.search(
             continuation,
-            object -> object instanceof ExecutableHandle && ((ExecutableHandle) object).name().toLowerCase().contains(newValue.toLowerCase()),
+            object -> object instanceof ExecutableHandle && ((ExecutableHandle) object).name().toLowerCase().contains(filterString.toLowerCase()),
             lastLoadedProcessHandles);
 
         loadProcessTree(processTreeTableView.getRoot(), continuation.searchResult());
     }
 
     private void loadProcessTree(TreeItem<ExecutableHandle> root, Collection<ProcessHandle> processHandles) {
-        Platform.runLater(() -> {
-            root.getChildren().clear();
-            processHandles
-                .forEach(processInformation -> {
-                    TreeItem<ExecutableHandle> processItem = new TreeItem<>(processInformation);
-                    root.getChildren().add(processItem);
+        root.getChildren().clear();
 
-                    processInformation.modules()
-                        .forEach(processModuleInformation -> processItem.getChildren().add(
-                            new TreeItem<>(processModuleInformation)));
-                });
-        });
+        processHandles
+            .forEach(processInformation -> {
+                TreeItem<ExecutableHandle> processItem = new TreeItem<>(processInformation);
+                root.getChildren().add(processItem);
+
+                processInformation.modules()
+                    .forEach(processModuleInformation -> processItem.getChildren().add(
+                        new TreeItem<>(processModuleInformation)));
+            });
+
+        processTreeTableView.sort();
     }
 
     @FXML protected void refresh(ActionEvent event) {
-        loadProcessTree(processTreeTableView.getRoot(), lastLoadedProcessHandles = ProcessHandle.allAvailable());
+        lastLoadedProcessHandles = ProcessHandle.allAvailable();
+        applyFilter(filterTextField.getText());
     }
 
     @FXML protected void makeFullscreen(ActionEvent event) {
