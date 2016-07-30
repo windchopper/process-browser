@@ -81,6 +81,7 @@
                 <configuration>
                     <vendor>wind.name</vendor>
                     <mainClass>name.wind.tools.process.browser.Launcher</mainClass>
+                    <verbose>true</verbose>
                 </configuration>
             </plugin>
         </plugins>

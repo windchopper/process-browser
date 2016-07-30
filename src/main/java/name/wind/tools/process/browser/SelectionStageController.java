@@ -73,7 +73,7 @@ import java.util.Map;
         try {
             removeWindowFrame(windowHandle);
             applyMonitorSizeToWindow(windowHandle);
-        } catch (Throwable thrown) {
+        } catch (Win32Exception thrown) {
             Alert errorAlert = new Alert(Alert.AlertType.ERROR);
             errorAlert.setHeaderText(thrown.getMessage());
             errorAlert.show();
