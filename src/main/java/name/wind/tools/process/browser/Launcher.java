@@ -24,7 +24,7 @@ public class Launcher extends Application {
 
     @Override public void start(Stage primaryStage) throws Exception {
         weldContainer.getBeanManager().fireEvent(
-            new FXMLFormOpen(primaryStage, "/name/wind/tools/process/browser/processListStage.fxml"));
+            new FXMLFormOpen(primaryStage, FXMLResources.FXML__PROCESS_LIST));
     }
 
     /*

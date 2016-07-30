@@ -14,7 +14,7 @@ import java.util.List;
 
 public interface Kernel32Extended extends Kernel32 {
 
-    Kernel32Extended INSTANCE = (Kernel32Extended) Native.loadLibrary(Kernel32Extended.class, W32APIOptions.UNICODE_OPTIONS);
+    Kernel32Extended INSTANCE = (Kernel32Extended) Native.loadLibrary("kernel32", Kernel32Extended.class, W32APIOptions.UNICODE_OPTIONS);
 
     boolean Module32First(WinNT.HANDLE hSnapshot, MODULEENTRY32.ByReference lpme);
     boolean Module32Next(WinNT.HANDLE hSnapshot, MODULEENTRY32.ByReference lpme);

@@ -1,9 +1,11 @@
 package name.wind.tools.process.browser;
 
+import com.sun.jna.platform.win32.Win32Exception;
 import javafx.beans.binding.Bindings;
 import javafx.event.ActionEvent;
 import javafx.fxml.FXML;
 import javafx.geometry.Dimension2D;
+import javafx.scene.control.Alert;
 import javafx.scene.control.Button;
 import javafx.scene.control.ListView;
 import javafx.scene.input.MouseButton;
@@ -15,6 +17,7 @@ import name.wind.tools.process.browser.events.Action;
 import name.wind.tools.process.browser.events.ActionEngage;
 import name.wind.tools.process.browser.events.FXMLLocation;
 import name.wind.tools.process.browser.windows.WindowHandle;
+import name.wind.tools.process.browser.windows.WindowRoutines;
 
 import javax.enterprise.context.ApplicationScoped;
 import javax.enterprise.event.Event;
@@ -24,7 +27,7 @@ import java.util.Collection;
 import java.util.Map;
 
 @ApplicationScoped @FXMLLocation(FXMLResources.FXML__SELECTION) public class SelectionStageController
-    extends StageController implements ResourceBundleAware {
+    extends StageController implements WindowRoutines, ResourceBundleAware {
 
     @Inject @Action("makeFullscreen") protected Event<ActionEngage<WindowHandle>> makeFullscreenActionEngage;
 
@@ -62,6 +65,15 @@ import java.util.Map;
 
     protected void makeFullscreen(@Observes @Action("makeFullscreen") ActionEngage<WindowHandle> actionEngage) {
         stage.hide();
+        WindowHandle windowHandle = actionEngage.target();
+        try {
+            removeWindowFrame(windowHandle);
+            applyMonitorSizeToWindow(windowHandle);
+        } catch (Win32Exception thrown) {
+            Alert errorAlert = new Alert(Alert.AlertType.ERROR);
+            errorAlert.setHeaderText(thrown.getMessage());
+            errorAlert.show();
+        }
     }
 
 }

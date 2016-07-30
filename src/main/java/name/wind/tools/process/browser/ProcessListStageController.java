@@ -21,6 +21,7 @@ import name.wind.tools.process.browser.events.FXMLLocation;
 import name.wind.tools.process.browser.windows.ExecutableHandle;
 import name.wind.tools.process.browser.windows.ProcessHandle;
 import name.wind.tools.process.browser.windows.WindowHandle;
+import name.wind.tools.process.browser.windows.WindowRoutines;
 
 import javax.enterprise.context.ApplicationScoped;
 import javax.enterprise.event.Event;
@@ -151,11 +152,11 @@ import java.util.stream.Stream;
             errorMessage = Value.of(String.format(bundle.getString("stage.processList.error.unexpected"), thrown.getMessage()));
         }
 
-        errorMessage.ifPresent(message -> Platform.runLater(() -> {
+        errorMessage.ifPresent(message -> {
             Alert errorAlert = new Alert(Alert.AlertType.ERROR);
             errorAlert.setHeaderText(message);
             errorAlert.show();
-        }));
+        });
     }
 
 }
