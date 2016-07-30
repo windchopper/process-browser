@@ -14,6 +14,8 @@ import javafx.stage.Screen;
 import javafx.stage.Stage;
 import name.wind.common.util.Builder;
 import name.wind.common.util.Value;
+import name.wind.tools.process.browser.events.Action;
+import name.wind.tools.process.browser.events.ActionEngage;
 import name.wind.tools.process.browser.events.FXMLFormOpen;
 import name.wind.tools.process.browser.events.FXMLLocation;
 import name.wind.tools.process.browser.windows.ExecutableHandle;
@@ -30,24 +32,24 @@ import java.util.Map;
 import java.util.function.Supplier;
 import java.util.stream.Stream;
 
-@ApplicationScoped @FXMLLocation("/name/wind/tools/process/browser/processListStage.fxml") public class ProcessListStageController
+@ApplicationScoped @FXMLLocation(FXMLResources.FXML__PROCESS_LIST) public class ProcessListStageController
     extends StageController implements ResourceBundleAware, WindowRoutines {
 
-    //@Inject @Named(FormShow.IDENTIFIER__SELECTION) protected Event<SelectionStageConstructed<WindowHandle>> selectionEvent;
-    //@Inject protected Event<SelectionPerformed<WindowHandle>> selectionPerformedEvent;
+    @Inject protected Event<FXMLFormOpen> fxmlFormOpenEvent;
+    @Inject @Action("makeFullscreen") protected Event<ActionEngage<WindowHandle>> makeFullscreenActionEngage;
 
     @FXML protected TreeTableView<ExecutableHandle> processTreeTableView;
     @FXML protected TextField filterTextField;
     @FXML protected MenuItem makeFullscreenMenuItem;
     @FXML protected MenuItem terminateMenuItem;
 
-    @Inject private Event<FXMLFormOpen> fxmlFormOpenEvent;
-
-    protected final ExecutableHandleSearch processSearch = new ExecutableHandleSearch();
-    protected List<ProcessHandle> lastLoadedProcessHandles;
+    private final ExecutableHandleSearch processSearch = new ExecutableHandleSearch();
+    private List<ProcessHandle> lastLoadedProcessHandles;
 
     @Override protected void start(Stage stage, String identifier, Map<String, Object> parameters) {
         super.start(stage, identifier, parameters);
+
+        stage.setTitle(bundle.getString("stage.processList.title"));
 
         TreeItem<ExecutableHandle> processTreeRoot = new TreeItem<>(null);
         processTreeRoot.setExpanded(true);
@@ -58,7 +60,8 @@ import java.util.stream.Stream;
         processTreeTableView.requestFocus();
 
         BooleanBinding selectionIsProcessHandle = Bindings.createBooleanBinding(
-            this::selectionIsProcessHandle, processTreeTableView.getSelectionModel().selectedItemProperty());
+            () -> Value.of(processTreeTableView.getSelectionModel().getSelectedItem()).filter(selectedItem -> selectedItem != null && selectedItem.getValue() instanceof ProcessHandle).present(),
+            processTreeTableView.getSelectionModel().selectedItemProperty());
         Stream.of(makeFullscreenMenuItem, terminateMenuItem).forEach(
             menuItem -> menuItem.disableProperty().bind(selectionIsProcessHandle.not()));
 
@@ -71,7 +74,7 @@ import java.util.stream.Stream;
             .get();
     }
 
-    protected void filterTextChanged(ObservableValue<? extends String> property, String oldValue, String newValue) {
+    private void filterTextChanged(ObservableValue<? extends String> property, String oldValue, String newValue) {
         ExecutableHandleSearch.Continuation continuation = new ExecutableHandleSearch.Continuation();
 
         processSearch.search(
@@ -82,7 +85,7 @@ import java.util.stream.Stream;
         loadProcessTree(processTreeTableView.getRoot(), continuation.searchResult());
     }
 
-    protected void loadProcessTree(TreeItem<ExecutableHandle> root, Collection<ProcessHandle> processHandles) {
+    private void loadProcessTree(TreeItem<ExecutableHandle> root, Collection<ProcessHandle> processHandles) {
         Platform.runLater(() -> {
             root.getChildren().clear();
             processHandles
@@ -115,27 +118,22 @@ import java.util.stream.Stream;
                         .set(target -> target::initModality, Modality.APPLICATION_MODAL)
                         .set(target -> target::setResizable, false)
                         .get(),
-                    "/name/wind/tools/process/browser/selectionStage.fxml",
+                    FXMLResources.FXML__SELECTION,
                     Builder.directMapBuilder((Supplier<Map<String, Object>>) HashMap::new)
                         .set(map -> value -> map.put("windowHandles", value), windowHandles)
                         .get()));
         } else if (windowHandles.size() > 0) {
-//            selectionPerformedEvent.fire(
-//                new SelectionPerformed<>(windowHandles.get(0)));
+            makeFullscreenActionEngage.fire(
+                new ActionEngage<>(windowHandles.get(0)));
         }
     }
-
-//    protected void windowHandleSelected(@Observes SelectionPerformed<WindowHandle> selectionPerformed) {
-//        System.out.println("hwnd: " + selectionPerformed.selectedObject().handle());
-//        System.out.println("title: " + selectionPerformed.selectedObject().title());
-//    }
 
     @FXML protected void terminate(ActionEvent event) {
         TreeItem<ExecutableHandle> selectedItem = processTreeTableView.getSelectionModel().getSelectedItem();
 
         Alert confirmationAlert = new Alert(Alert.AlertType.CONFIRMATION, null, ButtonType.YES, ButtonType.NO);
         confirmationAlert.initOwner(stage);
-        confirmationAlert.setHeaderText(bundle.getString("name.wind.tools.process.browser.ProcessListStageController.confirm.terminate"));
+        confirmationAlert.setHeaderText(bundle.getString("stage.processList.confirmation.terminate"));
         boolean terminate = confirmationAlert.showAndWait()
             .map(choice -> choice == ButtonType.YES)
             .orElse(false);
@@ -150,7 +148,7 @@ import java.util.stream.Stream;
                 selectedItem.getParent().getChildren().remove(selectedItem);
             }
         } catch (Win32Exception thrown) {
-            errorMessage = Value.of(String.format(bundle.getString("name.wind.tools.process.browser.ProcessListStageController.error.unexpected"), thrown.getMessage()));
+            errorMessage = Value.of(String.format(bundle.getString("stage.processList.error.unexpected"), thrown.getMessage()));
         }
 
         errorMessage.ifPresent(message -> Platform.runLater(() -> {
@@ -158,11 +156,6 @@ import java.util.stream.Stream;
             errorAlert.setHeaderText(message);
             errorAlert.show();
         }));
-    }
-
-    protected boolean selectionIsProcessHandle() {
-        TreeItem<ExecutableHandle> selectedItem = processTreeTableView.getSelectionModel().getSelectedItem();
-        return selectedItem != null && selectedItem.getValue() instanceof ProcessHandle;
     }
 
 }

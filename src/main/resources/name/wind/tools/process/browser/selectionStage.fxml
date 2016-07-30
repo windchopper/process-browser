@@ -1,21 +1,43 @@
 <?xml version="1.0" encoding="UTF-8"?>
 
-<?import javafx.scene.control.*?>
-<?import java.lang.*?>
+<?import javafx.geometry.Insets?>
+<?import javafx.scene.control.Button?>
+<?import javafx.scene.control.Label?>
+<?import javafx.scene.control.ListView?>
 <?import javafx.scene.layout.*?>
+<?import name.wind.tools.process.browser.WindowHandleCellFactory?>
 
-<BorderPane maxHeight="-Infinity" maxWidth="-Infinity" minHeight="-Infinity" minWidth="-Infinity" prefHeight="400.0" prefWidth="600.0" xmlns="http://javafx.com/javafx/8" xmlns:fx="http://javafx.com/fxml/1">
-   <bottom>
-      <HBox prefHeight="100.0" prefWidth="200.0" BorderPane.alignment="BASELINE_RIGHT">
-         <children>
-            <Button mnemonicParsing="false" text="Button" />
-         </children>
-      </HBox>
-   </bottom>
-   <center>
-      <ListView prefHeight="200.0" prefWidth="200.0" BorderPane.alignment="CENTER" />
-   </center>
-   <top>
-      <Label text="Label" BorderPane.alignment="CENTER" />
-   </top>
-</BorderPane>
+<GridPane maxHeight="-Infinity" maxWidth="-Infinity" minHeight="50.0" minWidth="100.0" xmlns="http://javafx.com/javafx/8" xmlns:fx="http://javafx.com/fxml/1">
+    <columnConstraints>
+        <ColumnConstraints hgrow="ALWAYS"/>
+        <ColumnConstraints hgrow="ALWAYS"/>
+    </columnConstraints>
+    <rowConstraints>
+        <RowConstraints/>
+        <RowConstraints vgrow="ALWAYS"/>
+        <RowConstraints/>
+    </rowConstraints>
+    <children>
+        <Label text="%stage.selection.label" GridPane.columnIndex="0" GridPane.columnSpan="2">
+            <GridPane.margin>
+                <Insets top="4.0" right="4.0" left="4.0"/>
+            </GridPane.margin>
+        </Label>
+        <fx:define>
+            <WindowHandleCellFactory fx:id="cellFactory"/>
+        </fx:define>
+        <ListView fx:id="selectionListView" GridPane.columnSpan="2" GridPane.hgrow="ALWAYS" GridPane.rowIndex="1" GridPane.vgrow="ALWAYS" prefHeight="200.0" onMouseClicked="#mouseClicked">
+            <GridPane.margin>
+                <Insets top="4.0" right="4.0" bottom="4.0" left="4.0"/>
+            </GridPane.margin>
+            <cellFactory>
+                <fx:reference source="cellFactory"/>
+            </cellFactory>
+        </ListView>
+        <Button fx:id="selectButton" minWidth="100.0" text="%stage.selection.select" GridPane.columnIndex="1" GridPane.halignment="RIGHT" GridPane.rowIndex="2" defaultButton="true" onAction="#selectButtonPressed">
+            <GridPane.margin>
+                <Insets right="4.0" bottom="4.0" left="4.0"/>
+            </GridPane.margin>
+        </Button>
+    </children>
+</GridPane>
