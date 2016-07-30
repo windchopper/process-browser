@@ -64,12 +64,16 @@ import java.util.Map;
     }
 
     protected void makeFullscreen(@Observes @Action("makeFullscreen") ActionEngage<WindowHandle> actionEngage) {
-        stage.hide();
+        if (stage != null) {
+            stage.hide();
+        }
+
         WindowHandle windowHandle = actionEngage.target();
+
         try {
             removeWindowFrame(windowHandle);
             applyMonitorSizeToWindow(windowHandle);
-        } catch (Win32Exception thrown) {
+        } catch (Throwable thrown) {
             Alert errorAlert = new Alert(Alert.AlertType.ERROR);
             errorAlert.setHeaderText(thrown.getMessage());
             errorAlert.show();
