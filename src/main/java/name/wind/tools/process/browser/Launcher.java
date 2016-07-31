@@ -24,13 +24,8 @@ public class Launcher extends Application implements KnownSystemProperties {
     }
 
     @Override public void start(Stage primaryStage) throws Exception {
-        if (PROPERTY__OS_NAME.value("unknown").toLowerCase().contains("windows")) {
-
-        } else {
-
-        }
         weldContainer.getBeanManager().fireEvent(
-            new FXMLFormOpen(primaryStage, !PROPERTY__OS_NAME.value("unknown").toLowerCase().contains("windows")
+            new FXMLFormOpen(primaryStage, PROPERTY__OS_NAME.value("unknown").toLowerCase().contains("windows")
                 ? FXMLResources.FXML__PROCESS_LIST
                 : FXMLResources.FXML__OOPS));
     }
