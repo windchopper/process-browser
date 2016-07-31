@@ -11,6 +11,11 @@ import javafx.scene.control.*;
 import javafx.stage.Modality;
 import javafx.stage.Screen;
 import javafx.stage.Stage;
+import name.wind.common.preferences.DefaultPreferencesEntry;
+import name.wind.common.preferences.PreferencesEntry;
+import name.wind.common.preferences.PreferencesEntryType;
+import name.wind.common.preferences.store.DefaultFlatPreferencesStorage;
+import name.wind.common.preferences.store.PreferencesStorage;
 import name.wind.common.util.Builder;
 import name.wind.common.util.Value;
 import name.wind.tools.process.browser.events.Action;
@@ -43,6 +48,9 @@ import java.util.stream.Stream;
     @FXML protected MenuItem makeFullscreenMenuItem;
     @FXML protected MenuItem terminateMenuItem;
 
+    private final static PreferencesStorage<String> preferencesStorage = new DefaultFlatPreferencesStorage("/name/wind/tools/process/browser");
+    private final PreferencesEntry<String> filterTextPreferencesEntry = new DefaultPreferencesEntry<>(preferencesStorage, "filterText", PreferencesEntryType.stringType);
+
     private final ExecutableHandleSearch processSearch = new ExecutableHandleSearch();
     private List<ProcessHandle> lastLoadedProcessHandles;
 
@@ -55,15 +63,23 @@ import java.util.stream.Stream;
         processTreeRoot.setExpanded(true);
 
         loadProcessTree(processTreeRoot, lastLoadedProcessHandles = ProcessHandle.allAvailable());
-
         processTreeTableView.setRoot(processTreeRoot);
-        processTreeTableView.requestFocus();
 
         BooleanBinding selectionIsProcessHandle = Bindings.createBooleanBinding(
             () -> Value.of(processTreeTableView.getSelectionModel().getSelectedItem()).filter(selectedItem -> selectedItem != null && selectedItem.getValue() instanceof ProcessHandle).present(),
             processTreeTableView.getSelectionModel().selectedItemProperty());
         Stream.of(makeFullscreenMenuItem, terminateMenuItem).forEach(
             menuItem -> menuItem.disableProperty().bind(selectionIsProcessHandle.not()));
+
+        String filterText = filterTextPreferencesEntry.get();
+
+        if (filterText != null && filterText.trim().length() > 0) {
+            applyFilter(filterText);
+            filterTextField.setText(filterText);
+            filterTextField.requestFocus();
+        } else {
+            processTreeTableView.requestFocus();
+        }
 
         filterTextField.textProperty().addListener(this::filterTextChanged);
     }
@@ -78,15 +94,16 @@ import java.util.stream.Stream;
         applyFilter(newValue);
     }
 
-    private void applyFilter(String filterString) {
+    private void applyFilter(String filterText) {
         ExecutableHandleSearch.Continuation continuation = new ExecutableHandleSearch.Continuation();
 
         processSearch.search(
             continuation,
-            object -> object instanceof ExecutableHandle && ((ExecutableHandle) object).name().toLowerCase().contains(filterString.toLowerCase()),
+            object -> object instanceof ExecutableHandle && ((ExecutableHandle) object).name().toLowerCase().contains(filterText.toLowerCase()),
             lastLoadedProcessHandles);
 
         loadProcessTree(processTreeTableView.getRoot(), continuation.searchResult());
+        filterTextPreferencesEntry.accept(filterText);
     }
 
     private void loadProcessTree(TreeItem<ExecutableHandle> root, Collection<ProcessHandle> processHandles) {
