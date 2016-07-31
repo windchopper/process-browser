@@ -2,11 +2,12 @@ package name.wind.tools.process.browser;
 
 import javafx.application.Application;
 import javafx.stage.Stage;
+import name.wind.common.util.KnownSystemProperties;
 import name.wind.tools.process.browser.events.FXMLFormOpen;
 import org.jboss.weld.environment.se.Weld;
 import org.jboss.weld.environment.se.WeldContainer;
 
-public class Launcher extends Application {
+public class Launcher extends Application implements KnownSystemProperties {
 
     private Weld weld;
     private WeldContainer weldContainer;
@@ -23,8 +24,15 @@ public class Launcher extends Application {
     }
 
     @Override public void start(Stage primaryStage) throws Exception {
+        if (PROPERTY__OS_NAME.value("unknown").toLowerCase().contains("windows")) {
+
+        } else {
+
+        }
         weldContainer.getBeanManager().fireEvent(
-            new FXMLFormOpen(primaryStage, FXMLResources.FXML__PROCESS_LIST));
+            new FXMLFormOpen(primaryStage, !PROPERTY__OS_NAME.value("unknown").toLowerCase().contains("windows")
+                ? FXMLResources.FXML__PROCESS_LIST
+                : FXMLResources.FXML__OOPS));
     }
 
     /*
