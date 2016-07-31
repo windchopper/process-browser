@@ -90,6 +90,7 @@ import java.util.stream.Stream;
     }
 
     private void loadProcessTree(TreeItem<ExecutableHandle> root, Collection<ProcessHandle> processHandles) {
+        processTreeTableView.getSelectionModel().clearSelection(); // javafx bug
         root.getChildren().clear();
 
         processHandles
