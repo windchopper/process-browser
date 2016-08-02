@@ -16,6 +16,7 @@ import name.wind.common.preferences.PreferencesEntry;
 import name.wind.common.preferences.PreferencesEntryType;
 import name.wind.common.preferences.store.DefaultFlatPreferencesStorage;
 import name.wind.common.preferences.store.PreferencesStorage;
+import name.wind.common.search.WildcardMultiphraseMatcher;
 import name.wind.common.util.Builder;
 import name.wind.common.util.Value;
 import name.wind.tools.process.browser.events.Action;
@@ -96,10 +97,13 @@ import java.util.stream.Stream;
 
     private void applyFilter(String filterText) {
         ExecutableHandleSearch.Continuation continuation = new ExecutableHandleSearch.Continuation();
+        WildcardMultiphraseMatcher mather = new WildcardMultiphraseMatcher(filterText);
 
         processSearch.search(
             continuation,
-            object -> object instanceof ExecutableHandle && ((ExecutableHandle) object).name().toLowerCase().contains(filterText.toLowerCase()),
+            mather.toPredicate(object -> object instanceof ExecutableHandle
+                ? ((ExecutableHandle) object).name()
+                : ""),
             lastLoadedProcessHandles);
 
         loadProcessTree(processTreeTableView.getRoot(), continuation.searchResult());
