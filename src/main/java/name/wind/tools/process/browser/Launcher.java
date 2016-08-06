@@ -27,7 +27,7 @@ public class Launcher extends Application implements KnownSystemProperties {
         weldContainer.getBeanManager().fireEvent(
             new FXMLFormOpen(primaryStage, PROPERTY__OS_NAME.value("unknown").toLowerCase().contains("windows")
                 ? FXMLResources.FXML__PROCESS_LIST
-                : FXMLResources.FXML__OOPS));
+                : FXMLResources.FXML__NOT_WINDOWS));
     }
 
     /*

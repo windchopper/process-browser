@@ -35,8 +35,12 @@ public abstract class StageController {
         return null;
     }
 
-    protected void initializeBounds(Window window) {
-        Dimension2D preferredSize = preferredStageSize();
+    protected void initializeBounds(Window window, boolean resizable) {
+        Dimension2D preferredSize = null;
+
+        if (resizable) {
+            preferredSize = preferredStageSize();
+        }
 
         if (preferredSize == null) {
             window.sizeToScene();

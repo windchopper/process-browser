@@ -9,7 +9,7 @@ import name.wind.tools.process.browser.events.FXMLLocation;
 import javax.enterprise.context.ApplicationScoped;
 import java.util.Map;
 
-@ApplicationScoped @FXMLLocation(FXMLResources.FXML__OOPS) public class OopsStageController
+@ApplicationScoped @FXMLLocation(FXMLResources.FXML__NOT_WINDOWS) public class NotWindowsStageController
     extends StageController implements ResourceBundleAware {
 
     @Override protected Dimension2D preferredStageSize() {
@@ -20,7 +20,7 @@ import java.util.Map;
 
     @Override protected void start(Stage stage, String identifier, Map<String, Object> parameters) {
         super.start(stage, identifier, parameters);
-        stage.setTitle(bundle.getString("stage.oops.title"));
+        stage.setTitle(bundle.getString("stage.notWindows.title"));
     }
 
 }

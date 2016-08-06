@@ -38,6 +38,8 @@ import java.util.Map;
 import java.util.function.Supplier;
 import java.util.stream.Stream;
 
+import static java.util.Collections.emptyMap;
+
 @ApplicationScoped @FXMLLocation(FXMLResources.FXML__PROCESS_LIST) public class ProcessListStageController
     extends StageController implements ResourceBundleAware, WindowRoutines {
 
@@ -130,6 +132,18 @@ import java.util.stream.Stream;
     @FXML protected void refresh(ActionEvent event) {
         lastLoadedProcessHandles = ProcessHandle.allAvailable();
         applyFilter(filterTextField.getText());
+    }
+
+    @FXML protected void run(ActionEvent event) {
+        fxmlFormOpenEvent.fire(
+            new FXMLFormOpen(
+                Builder.direct(Stage::new)
+                    .set(target -> target::initOwner, stage)
+                    .set(target -> target::initModality, Modality.APPLICATION_MODAL)
+                    .set(target -> target::setResizable, false)
+                    .get(),
+                FXMLResources.FXML__RUN,
+                emptyMap()));
     }
 
     @FXML protected void makeFullscreen(ActionEvent event) {
