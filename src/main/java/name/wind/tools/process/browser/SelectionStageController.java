@@ -27,7 +27,7 @@ import java.util.Collection;
 import java.util.Map;
 
 @ApplicationScoped @FXMLLocation(FXMLResources.FXML__SELECTION) public class SelectionStageController
-    extends StageController implements WindowRoutines, ResourceBundleAware {
+    extends StageController implements ResourceBundleAware {
 
     @Inject @Action("makeFullscreen") protected Event<ActionEngage<WindowHandle>> makeFullscreenActionEngage;
 
@@ -71,8 +71,8 @@ import java.util.Map;
         WindowHandle windowHandle = actionEngage.target();
 
         try {
-            removeWindowFrame(windowHandle);
-            applyMonitorSizeToWindow(windowHandle);
+            WindowRoutines.removeWindowFrame(windowHandle);
+            WindowRoutines.applyMonitorSizeToWindow(windowHandle);
         } catch (Win32Exception thrown) {
             Alert errorAlert = new Alert(Alert.AlertType.ERROR);
             errorAlert.setHeaderText(thrown.getMessage());

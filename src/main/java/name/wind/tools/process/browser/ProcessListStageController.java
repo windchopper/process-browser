@@ -11,11 +11,6 @@ import javafx.scene.control.*;
 import javafx.stage.Modality;
 import javafx.stage.Screen;
 import javafx.stage.Stage;
-import name.wind.common.preferences.DefaultPreferencesEntry;
-import name.wind.common.preferences.PreferencesEntry;
-import name.wind.common.preferences.PreferencesEntryType;
-import name.wind.common.preferences.store.DefaultFlatPreferencesStorage;
-import name.wind.common.preferences.store.PreferencesStorage;
 import name.wind.common.search.WildcardMultiphraseMatcher;
 import name.wind.common.util.Builder;
 import name.wind.common.util.Value;
@@ -23,10 +18,7 @@ import name.wind.tools.process.browser.events.Action;
 import name.wind.tools.process.browser.events.ActionEngage;
 import name.wind.tools.process.browser.events.FXMLFormOpen;
 import name.wind.tools.process.browser.events.FXMLLocation;
-import name.wind.tools.process.browser.windows.ExecutableHandle;
-import name.wind.tools.process.browser.windows.ProcessHandle;
-import name.wind.tools.process.browser.windows.WindowHandle;
-import name.wind.tools.process.browser.windows.WindowRoutines;
+import name.wind.tools.process.browser.windows.*;
 
 import javax.enterprise.context.ApplicationScoped;
 import javax.enterprise.event.Event;
@@ -39,9 +31,10 @@ import java.util.function.Supplier;
 import java.util.stream.Stream;
 
 import static java.util.Collections.emptyMap;
+import static java.util.stream.Collectors.toList;
 
 @ApplicationScoped @FXMLLocation(FXMLResources.FXML__PROCESS_LIST) public class ProcessListStageController
-    extends StageController implements ResourceBundleAware, WindowRoutines {
+    extends StageController implements ResourceBundleAware, PreferencesAware {
 
     @Inject protected Event<FXMLFormOpen> fxmlFormOpenEvent;
     @Inject @Action("makeFullscreen") protected Event<ActionEngage<WindowHandle>> makeFullscreenActionEngage;
@@ -50,9 +43,6 @@ import static java.util.Collections.emptyMap;
     @FXML protected TextField filterTextField;
     @FXML protected MenuItem makeFullscreenMenuItem;
     @FXML protected MenuItem terminateMenuItem;
-
-    private final static PreferencesStorage<String> preferencesStorage = new DefaultFlatPreferencesStorage("/name/wind/tools/process/browser");
-    private final PreferencesEntry<String> filterTextPreferencesEntry = new DefaultPreferencesEntry<>(preferencesStorage, "filterText", PreferencesEntryType.stringType);
 
     private final ExecutableHandleSearch processSearch = new ExecutableHandleSearch();
     private List<ProcessHandle> lastLoadedProcessHandles;
@@ -65,7 +55,11 @@ import static java.util.Collections.emptyMap;
         TreeItem<ExecutableHandle> processTreeRoot = new TreeItem<>(null);
         processTreeRoot.setExpanded(true);
 
-        loadProcessTree(processTreeRoot, lastLoadedProcessHandles = ProcessHandle.allAvailable());
+        loadProcessTree(processTreeRoot, lastLoadedProcessHandles = ProcessRoutines.allAvailableProcesses().stream()
+            .filter(retrievalResult -> retrievalResult.exception() == null)
+            .map(ProcessHandleRetrievalResult::processHandle)
+            .collect(
+                toList()));
         processTreeTableView.setRoot(processTreeRoot);
 
         BooleanBinding selectionIsProcessHandle = Bindings.createBooleanBinding(
@@ -130,7 +124,11 @@ import static java.util.Collections.emptyMap;
     }
 
     @FXML protected void refresh(ActionEvent event) {
-        lastLoadedProcessHandles = ProcessHandle.allAvailable();
+        lastLoadedProcessHandles = ProcessRoutines.allAvailableProcesses().stream()
+            .filter(retrievalResult -> retrievalResult.exception() == null)
+            .map(ProcessHandleRetrievalResult::processHandle)
+            .collect(
+                toList());
         applyFilter(filterTextField.getText());
     }
 
@@ -149,7 +147,7 @@ import static java.util.Collections.emptyMap;
     @FXML protected void makeFullscreen(ActionEvent event) {
         TreeItem<ExecutableHandle> selectedItem = processTreeTableView.getSelectionModel().getSelectedItem();
 
-        List<WindowHandle> windowHandles = processWindowHandles(
+        List<WindowHandle> windowHandles = WindowRoutines.processWindowHandles(
             (ProcessHandle) selectedItem.getValue());
 
         if (windowHandles.size() > 1) {

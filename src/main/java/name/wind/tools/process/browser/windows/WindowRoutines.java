@@ -5,18 +5,21 @@ import com.sun.jna.platform.win32.Win32Exception;
 import com.sun.jna.platform.win32.WinDef;
 import com.sun.jna.platform.win32.WinUser;
 import com.sun.jna.ptr.IntByReference;
-import name.wind.tools.process.browser.windows.jna.Kernel32Extended;
 import name.wind.tools.process.browser.windows.jna.User32Extended;
 
 import java.util.ArrayList;
 import java.util.List;
 
-public interface WindowRoutines {
+public class WindowRoutines implements JnaAware {
 
-    User32 user = User32Extended.INSTANCE;
-    Kernel32Extended kernel = Kernel32Extended.INSTANCE;
+    private WindowRoutines() {
+    }
 
-    default String windowTitle(WinDef.HWND hwnd) {
+    /*
+     *
+     */
+
+    public static String windowTitle(WinDef.HWND hwnd) {
         int bufferLength = user.GetWindowTextLength(hwnd);
 
         if (bufferLength > 0) {
@@ -32,7 +35,7 @@ public interface WindowRoutines {
         return null;
     }
 
-    default List<WindowHandle> processWindowHandles(ProcessHandle processHandle) {
+    public static List<WindowHandle> processWindowHandles(ProcessHandle processHandle) {
         List<WindowHandle> windowHandles = new ArrayList<>();
 
         if (user.EnumWindows((hwnd, pointer) -> {
@@ -58,7 +61,7 @@ public interface WindowRoutines {
         }
     }
 
-    default void applyMonitorSizeToWindow(WindowHandle windowHandle) {
+    public static void applyMonitorSizeToWindow(WindowHandle windowHandle) {
         WinUser.HMONITOR hMonitor = user.MonitorFromWindow(windowHandle.handle(), User32.MONITOR_DEFAULTTONEAREST);
         if (hMonitor == null) {
             throw new Win32Exception(kernel.GetLastError());
@@ -81,7 +84,7 @@ public interface WindowRoutines {
         }
     }
 
-    default void removeWindowFrame(WindowHandle windowHandle) {
+    public static void removeWindowFrame(WindowHandle windowHandle) {
         int originalWindowStyle = user.GetWindowLong(windowHandle.handle(), User32.GWL_STYLE);
 
         if (originalWindowStyle == 0) {
