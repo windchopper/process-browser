@@ -43,7 +43,7 @@ import java.util.Map;
 
     @FXML protected void run(ActionEvent event) {
         try {
-            ProcessRoutines.runProcess(commandTextField.getText(), "", elevateCheckBox.isSelected());
+            ProcessRoutines.runProcess(commandTextField.getText(), null, elevateCheckBox.isSelected());
         } catch (Exception thrown) {
             Alert errorAlert = new Alert(Alert.AlertType.ERROR);
             errorAlert.setHeaderText(thrown.getMessage());

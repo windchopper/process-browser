@@ -23,7 +23,7 @@ import static java.util.stream.Collectors.toList;
 
 public class ProcessRoutines implements JnaAware {
 
-    private static final int TIMEOUT__RELAUNCH_WAIT = 3000;
+    private static final int TIMEOUT__LAUNCH_WAIT = 1000;
 
     private static final int ARRAY_LENGTH__PROCESS_IDENTIFIERS = 1024;
     private static final int ARRAY_LENGTH__MODULE_HANDLES = 1024;
@@ -180,7 +180,7 @@ public class ProcessRoutines implements JnaAware {
         }
 
         if (shell.ShellExecuteEx(execInfo)) {
-            kernel.WaitForSingleObject(execInfo.hProcess, TIMEOUT__RELAUNCH_WAIT);
+            kernel.WaitForSingleObject(execInfo.hProcess, TIMEOUT__LAUNCH_WAIT);
             IntByReference exitCode = new IntByReference();
             if (kernel.GetExitCodeProcess(execInfo.hProcess, exitCode)) {
                 try {
