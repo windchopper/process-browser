@@ -50,7 +50,8 @@ import static java.util.stream.Collectors.toList;
     @Override protected void start(Stage stage, String identifier, Map<String, Object> parameters) {
         super.start(stage, identifier, parameters);
 
-        stage.setTitle(bundle.getString("stage.processList.title"));
+        stage.setTitle(
+            bundle.getString("stage.processList.title"));
 
         TreeItem<ExecutableHandle> processTreeRoot = new TreeItem<>(null);
         processTreeRoot.setExpanded(true);
@@ -171,8 +172,7 @@ import static java.util.stream.Collectors.toList;
     @FXML protected void terminate(ActionEvent event) {
         TreeItem<ExecutableHandle> selectedItem = processTreeTableView.getSelectionModel().getSelectedItem();
 
-        Alert confirmationAlert = new Alert(Alert.AlertType.CONFIRMATION, null, ButtonType.YES, ButtonType.NO);
-        confirmationAlert.initOwner(stage);
+        Alert confirmationAlert = prepareAlert(() -> new Alert(Alert.AlertType.CONFIRMATION, null, ButtonType.YES, ButtonType.NO));
         confirmationAlert.setHeaderText(bundle.getString("stage.processList.confirmation.terminate"));
         boolean terminate = confirmationAlert.showAndWait()
             .map(choice -> choice == ButtonType.YES)
@@ -192,7 +192,7 @@ import static java.util.stream.Collectors.toList;
         }
 
         errorMessage.ifPresent(message -> {
-            Alert errorAlert = new Alert(Alert.AlertType.ERROR);
+            Alert errorAlert = prepareAlert(() -> new Alert(Alert.AlertType.ERROR));
             errorAlert.setHeaderText(message);
             errorAlert.show();
         });

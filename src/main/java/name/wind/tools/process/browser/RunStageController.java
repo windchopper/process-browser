@@ -45,7 +45,7 @@ import java.util.Map;
         try {
             ProcessRoutines.runProcess(commandTextField.getText(), null, elevateCheckBox.isSelected());
         } catch (Exception thrown) {
-            Alert errorAlert = new Alert(Alert.AlertType.ERROR);
+            Alert errorAlert = prepareAlert(() -> new Alert(Alert.AlertType.ERROR));
             errorAlert.setHeaderText(thrown.getMessage());
             errorAlert.show();
         }

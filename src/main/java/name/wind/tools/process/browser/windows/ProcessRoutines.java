@@ -170,10 +170,14 @@ public class ProcessRoutines implements JnaAware {
 
     public static boolean runProcess(String file, String parameters, boolean elevated) {
         Shell32Extended.SHELLEXECUTEINFO execInfo = new Shell32Extended.SHELLEXECUTEINFO();
+        execInfo.hwnd = user.GetForegroundWindow();
         execInfo.lpFile = new WString(file);
-        execInfo.lpParameters = new WString(parameters);
         execInfo.fMask = Shell32Extended.SEE_MASK_NOCLOSEPROCESS;
         execInfo.nShow = Shell32Extended.SW_SHOWDEFAULT;
+
+        if (parameters != null) {
+            execInfo.lpParameters = new WString(parameters);
+        }
 
         if (elevated) {
             execInfo.lpVerb = new WString("runas");

@@ -74,7 +74,7 @@ import java.util.Map;
             WindowRoutines.removeWindowFrame(windowHandle);
             WindowRoutines.applyMonitorSizeToWindow(windowHandle);
         } catch (Win32Exception thrown) {
-            Alert errorAlert = new Alert(Alert.AlertType.ERROR);
+            Alert errorAlert = prepareAlert(() -> new Alert(Alert.AlertType.ERROR));
             errorAlert.setHeaderText(thrown.getMessage());
             errorAlert.show();
         }
