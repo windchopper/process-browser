@@ -3,6 +3,7 @@ package name.wind.tools.process.browser;
 import javafx.beans.binding.Bindings;
 import javafx.event.ActionEvent;
 import javafx.fxml.FXML;
+import javafx.scene.control.Alert;
 import javafx.scene.control.Button;
 import javafx.scene.control.CheckBox;
 import javafx.scene.control.TextField;
@@ -37,6 +38,16 @@ import java.util.Map;
                 selectedFile.getParentFile());
             commandTextField.setText(
                 selectedFile.getAbsolutePath());
+        }
+    }
+
+    @FXML protected void run(ActionEvent event) {
+        try {
+            ProcessRoutines.runProcess(commandTextField.getText(), "", elevateCheckBox.isSelected());
+        } catch (Exception thrown) {
+            Alert errorAlert = new Alert(Alert.AlertType.ERROR);
+            errorAlert.setHeaderText(thrown.getMessage());
+            errorAlert.show();
         }
     }
 
