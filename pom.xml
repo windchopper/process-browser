@@ -53,6 +53,11 @@
             <artifactId>common-cdi</artifactId>
             <version>1.0</version>
         </dependency>
+        <dependency>
+            <groupId>name.wind.application</groupId>
+            <artifactId>application-cdi-fx</artifactId>
+            <version>1.0</version>
+        </dependency>
     </dependencies>
 
     <build>

@@ -9,17 +9,18 @@ import javafx.scene.control.CheckBox;
 import javafx.scene.control.TextField;
 import javafx.stage.FileChooser;
 import javafx.stage.Stage;
+import name.wind.application.cdi.fx.annotation.FXMLResource;
+import name.wind.common.util.Builder;
 import name.wind.common.util.KnownSystemProperties;
 import name.wind.common.util.Value;
-import name.wind.tools.process.browser.events.FXMLLocation;
 import name.wind.tools.process.browser.windows.ProcessRoutines;
 
 import javax.enterprise.context.ApplicationScoped;
 import java.io.File;
 import java.util.Map;
 
-@ApplicationScoped @FXMLLocation(FXMLResources.FXML__RUN) public class RunStageController
-    extends StageController implements ResourceBundleAware, PreferencesAware {
+@ApplicationScoped @FXMLResource(FXMLResources.FXML__RUN) public class RunStageController
+    extends CommonStageController implements ResourceBundleAware, PreferencesAware {
 
     @FXML protected TextField commandTextField;
     @FXML protected CheckBox elevateCheckBox;
@@ -51,11 +52,13 @@ import java.util.Map;
         }
     }
 
-    @Override protected void start(Stage stage, String identifier, Map<String, Object> parameters) {
-        super.start(stage, identifier, parameters);
-
-        stage.setTitle(
-            bundle.getString("stage.run.title"));
+    @Override protected void start(Stage stage, String fxmlResource, Map<String, ?> parameters) {
+        super.start(
+            Builder.direct(() -> stage)
+                .set(target -> target::setTitle, bundle.getString("stage.run.title"))
+                .get(),
+            fxmlResource,
+            parameters);
 
         okButton.disableProperty().bind(
             Bindings.isEmpty(commandTextField.textProperty()));

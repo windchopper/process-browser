@@ -11,13 +11,13 @@ import javafx.scene.control.*;
 import javafx.stage.Modality;
 import javafx.stage.Screen;
 import javafx.stage.Stage;
+import name.wind.application.cdi.annotation.Action;
+import name.wind.application.cdi.fx.annotation.FXMLResource;
+import name.wind.application.cdi.fx.event.ActionEngage;
+import name.wind.application.cdi.fx.event.FXMLResourceOpen;
 import name.wind.common.search.WildcardMultiphraseMatcher;
 import name.wind.common.util.Builder;
 import name.wind.common.util.Value;
-import name.wind.tools.process.browser.events.Action;
-import name.wind.tools.process.browser.events.ActionEngage;
-import name.wind.tools.process.browser.events.FXMLFormOpen;
-import name.wind.tools.process.browser.events.FXMLLocation;
 import name.wind.tools.process.browser.windows.*;
 
 import javax.enterprise.context.ApplicationScoped;
@@ -33,10 +33,10 @@ import java.util.stream.Stream;
 import static java.util.Collections.emptyMap;
 import static java.util.stream.Collectors.toList;
 
-@ApplicationScoped @FXMLLocation(FXMLResources.FXML__PROCESS_LIST) public class ProcessListStageController
-    extends StageController implements ResourceBundleAware, PreferencesAware {
+@ApplicationScoped @FXMLResource(FXMLResources.FXML__PROCESS_LIST) public class ProcessListStageController
+    extends CommonStageController implements ResourceBundleAware, PreferencesAware {
 
-    @Inject protected Event<FXMLFormOpen> fxmlFormOpenEvent;
+    @Inject protected Event<FXMLResourceOpen> fxmlFormOpenEvent;
     @Inject @Action("makeFullscreen") protected Event<ActionEngage<WindowHandle>> makeFullscreenActionEngage;
 
     @FXML protected TreeTableView<ExecutableHandle> processTreeTableView;
@@ -47,11 +47,13 @@ import static java.util.stream.Collectors.toList;
     private final ExecutableHandleSearch processSearch = new ExecutableHandleSearch();
     private List<ProcessHandle> lastLoadedProcessHandles;
 
-    @Override protected void start(Stage stage, String identifier, Map<String, Object> parameters) {
-        super.start(stage, identifier, parameters);
-
-        stage.setTitle(
-            bundle.getString("stage.processList.title"));
+    @Override protected void start(Stage stage, String fxmlResource, Map<String, ?> parameters) {
+        super.start(
+            Builder.direct(() -> stage)
+                .set(target -> target::setTitle, bundle.getString("stage.processList.title"))
+                .get(),
+            fxmlResource,
+            parameters);
 
         TreeItem<ExecutableHandle> processTreeRoot = new TreeItem<>(null);
         processTreeRoot.setExpanded(true);
@@ -135,7 +137,7 @@ import static java.util.stream.Collectors.toList;
 
     @FXML protected void run(ActionEvent event) {
         fxmlFormOpenEvent.fire(
-            new FXMLFormOpen(
+            new FXMLResourceOpen(
                 Builder.direct(Stage::new)
                     .set(target -> target::initOwner, stage)
                     .set(target -> target::initModality, Modality.APPLICATION_MODAL)
@@ -153,7 +155,7 @@ import static java.util.stream.Collectors.toList;
 
         if (windowHandles.size() > 1) {
             fxmlFormOpenEvent.fire(
-                new FXMLFormOpen(
+                new FXMLResourceOpen(
                     Builder.direct(Stage::new)
                         .set(target -> target::initOwner, stage)
                         .set(target -> target::initModality, Modality.APPLICATION_MODAL)

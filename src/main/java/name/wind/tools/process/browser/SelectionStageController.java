@@ -12,10 +12,11 @@ import javafx.scene.input.MouseButton;
 import javafx.scene.input.MouseEvent;
 import javafx.stage.Screen;
 import javafx.stage.Stage;
+import name.wind.application.cdi.annotation.Action;
+import name.wind.application.cdi.fx.annotation.FXMLResource;
+import name.wind.application.cdi.fx.event.ActionEngage;
+import name.wind.common.util.Builder;
 import name.wind.common.util.Value;
-import name.wind.tools.process.browser.events.Action;
-import name.wind.tools.process.browser.events.ActionEngage;
-import name.wind.tools.process.browser.events.FXMLLocation;
 import name.wind.tools.process.browser.windows.WindowHandle;
 import name.wind.tools.process.browser.windows.WindowRoutines;
 
@@ -26,8 +27,8 @@ import javax.inject.Inject;
 import java.util.Collection;
 import java.util.Map;
 
-@ApplicationScoped @FXMLLocation(FXMLResources.FXML__SELECTION) public class SelectionStageController
-    extends StageController implements ResourceBundleAware {
+@ApplicationScoped @FXMLResource(FXMLResources.FXML__SELECTION) public class SelectionStageController
+    extends CommonStageController implements ResourceBundleAware {
 
     @Inject @Action("makeFullscreen") protected Event<ActionEngage<WindowHandle>> makeFullscreenActionEngage;
 
@@ -40,11 +41,14 @@ import java.util.Map;
             .get();
     }
 
-    @Override @SuppressWarnings("unchecked") protected void start(Stage stage, String identifier, Map<String, Object> parameters) {
-        super.start(stage, identifier, parameters);
+    @Override @SuppressWarnings("unchecked") protected void start(Stage stage, String fxmlResource, Map<String, ?> parameters) {
+        super.start(
+            Builder.direct(() -> stage)
+                .set(target -> target::setTitle, bundle.getString("stage.selection.title"))
+                .get(),
+            fxmlResource,
+            parameters);
 
-        stage.setTitle(
-            bundle.getString("stage.selection.title"));
         selectionListView.getItems().addAll(
             (Collection<? extends WindowHandle>) parameters.get("windowHandles"));
         selectButton.disableProperty().bind(Bindings.isNull(
