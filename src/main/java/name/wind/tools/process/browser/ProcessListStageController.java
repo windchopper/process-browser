@@ -34,7 +34,7 @@ import static java.util.Collections.emptyMap;
 import static java.util.stream.Collectors.toList;
 
 @ApplicationScoped @FXMLResource(FXMLResources.FXML__PROCESS_LIST) public class ProcessListStageController
-    extends CommonStageController implements ResourceBundleAware, PreferencesAware {
+    extends AnyStageController implements ResourceBundleAware, PreferencesAware {
 
     @Inject protected Event<FXMLResourceOpen> fxmlFormOpenEvent;
     @Inject @Action("makeFullscreen") protected Event<ActionEngage<WindowHandle>> makeFullscreenActionEngage;

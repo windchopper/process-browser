@@ -11,7 +11,7 @@ import javax.enterprise.context.ApplicationScoped;
 import java.util.Map;
 
 @ApplicationScoped @FXMLResource(FXMLResources.FXML__NOT_WINDOWS) public class NotWindowsStageController
-    extends CommonStageController implements ResourceBundleAware {
+    extends AnyStageController implements ResourceBundleAware {
 
     @Override protected Dimension2D preferredStageSize() {
         return Value.of(Screen.getPrimary().getVisualBounds())

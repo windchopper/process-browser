@@ -20,7 +20,7 @@ import java.io.File;
 import java.util.Map;
 
 @ApplicationScoped @FXMLResource(FXMLResources.FXML__RUN) public class RunStageController
-    extends CommonStageController implements ResourceBundleAware, PreferencesAware {
+    extends AnyStageController implements ResourceBundleAware, PreferencesAware {
 
     @FXML protected TextField commandTextField;
     @FXML protected CheckBox elevateCheckBox;

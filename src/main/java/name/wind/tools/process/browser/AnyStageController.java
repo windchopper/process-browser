@@ -11,7 +11,7 @@ import java.util.function.Supplier;
 
 import static java.util.Collections.singletonList;
 
-public abstract class CommonStageController extends StageController {
+public abstract class AnyStageController extends StageController {
 
     protected final Image iconImage = new Image("/name/wind/tools/process/browser/images/Show-All-Views-50.png");
 

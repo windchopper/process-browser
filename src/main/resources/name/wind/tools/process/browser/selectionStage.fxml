@@ -7,7 +7,7 @@
 <?import javafx.scene.image.Image?>
 <?import javafx.scene.image.ImageView?>
 <?import javafx.scene.layout.*?>
-<?import name.wind.tools.process.browser.WindowHandleCellFactory?>
+<?import name.wind.tools.process.browser.windows.WindowHandle?>
 <GridPane maxHeight="-Infinity" maxWidth="-Infinity" minHeight="50.0" minWidth="100.0" xmlns="http://javafx.com/javafx/8" xmlns:fx="http://javafx.com/fxml/1">
     <children>
         <ImageView GridPane.columnIndex="0" GridPane.halignment="RIGHT" GridPane.valignment="BOTTOM">
@@ -23,15 +23,12 @@
                 <Insets top="10.0" left="10.0" bottom="10.0" right="10.0"/>
             </GridPane.margin>
         </Label>
-        <fx:define>
-            <WindowHandleCellFactory fx:id="cellFactory"/>
-        </fx:define>
         <ListView fx:id="selectionListView" GridPane.columnIndex="1" GridPane.hgrow="ALWAYS" GridPane.rowIndex="1" GridPane.vgrow="ALWAYS" prefWidth="400.0" prefHeight="200.0" onMouseClicked="#mouseClicked">
             <GridPane.margin>
                 <Insets top="10.0" left="10.0" bottom="10.0" right="10.0"/>
             </GridPane.margin>
             <cellFactory>
-                <fx:reference source="cellFactory"/>
+                <WindowHandle fx:factory="listCellFactory"/>
             </cellFactory>
         </ListView>
         <HBox GridPane.columnIndex="1" GridPane.rowIndex="2" GridPane.fillWidth="true" GridPane.hgrow="ALWAYS" alignment="CENTER_RIGHT">

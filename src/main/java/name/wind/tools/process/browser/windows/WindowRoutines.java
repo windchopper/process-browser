@@ -12,13 +12,6 @@ import java.util.List;
 
 public class WindowRoutines implements JnaAware {
 
-    private WindowRoutines() {
-    }
-
-    /*
-     *
-     */
-
     public static String windowTitle(WinDef.HWND hwnd) {
         int bufferLength = user.GetWindowTextLength(hwnd);
 

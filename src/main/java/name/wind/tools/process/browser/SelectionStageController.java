@@ -28,7 +28,7 @@ import java.util.Collection;
 import java.util.Map;
 
 @ApplicationScoped @FXMLResource(FXMLResources.FXML__SELECTION) public class SelectionStageController
-    extends CommonStageController implements ResourceBundleAware {
+    extends AnyStageController implements ResourceBundleAware {
 
     @Inject @Action("makeFullscreen") protected Event<ActionEngage<WindowHandle>> makeFullscreenActionEngage;
 

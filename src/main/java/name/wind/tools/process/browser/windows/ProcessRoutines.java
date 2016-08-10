@@ -14,7 +14,6 @@ import name.wind.tools.process.browser.windows.jna.Shell32Extended;
 
 import java.nio.file.Paths;
 import java.util.List;
-import java.util.logging.Logger;
 
 import static com.sun.jna.platform.win32.WinBase.STILL_ACTIVE;
 import static java.util.Arrays.copyOfRange;
@@ -27,11 +26,6 @@ public class ProcessRoutines implements JnaAware {
 
     private static final int ARRAY_LENGTH__PROCESS_IDENTIFIERS = 1024;
     private static final int ARRAY_LENGTH__MODULE_HANDLES = 1024;
-
-    private static final Logger logger = Logger.getLogger("name.wind.tools.process.browser.windows");
-
-    private ProcessRoutines() {
-    }
 
     private static ProcessHandle processHandle(int processIdentifier, char[] characters, WinDef.HMODULE[] moduleHandles) {
         WinNT.HANDLE processHandle = kernel.OpenProcess(WinNT.PROCESS_VM_READ | WinNT.PROCESS_QUERY_INFORMATION, false, processIdentifier);
