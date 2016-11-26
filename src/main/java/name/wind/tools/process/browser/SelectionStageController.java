@@ -15,8 +15,7 @@ import javafx.stage.Stage;
 import name.wind.application.cdi.annotation.Action;
 import name.wind.application.cdi.fx.annotation.FXMLResource;
 import name.wind.application.cdi.fx.event.ActionEngage;
-import name.wind.common.util.Builder;
-import name.wind.common.util.Value;
+import name.wind.common.util.Pipeliner;
 import name.wind.tools.process.browser.windows.WindowHandle;
 import name.wind.tools.process.browser.windows.WindowRoutines;
 
@@ -36,14 +35,14 @@ import java.util.Map;
     @FXML protected Button selectButton;
 
     @Override protected Dimension2D preferredStageSize() {
-        return Value.of(Screen.getPrimary().getVisualBounds())
+        return Pipeliner.of(Screen.getPrimary().getVisualBounds())
             .map(visualBounds -> new Dimension2D(visualBounds.getWidth() / 3, visualBounds.getHeight() / 3))
             .get();
     }
 
     @Override @SuppressWarnings("unchecked") protected void start(Stage stage, String fxmlResource, Map<String, ?> parameters) {
         super.start(
-            Builder.direct(() -> stage)
+            Pipeliner.of(() -> stage)
                 .set(target -> target::setTitle, bundle.getString("stage.selection.title"))
                 .get(),
             fxmlResource,

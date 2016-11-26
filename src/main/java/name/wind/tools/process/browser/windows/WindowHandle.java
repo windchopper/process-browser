@@ -5,8 +5,9 @@ import javafx.scene.control.ListCell;
 import javafx.scene.control.ListView;
 import javafx.util.Callback;
 import name.wind.common.fx.CellFactory;
-import name.wind.common.util.Value;
 import name.wind.tools.process.browser.ResourceBundleAware;
+
+import java.util.Optional;
 
 import static java.util.Collections.singletonList;
 
@@ -29,7 +30,7 @@ public class WindowHandle implements ResourceBundleAware {
     }
 
     @SuppressWarnings("unchecked") public static Callback<ListView<WindowHandle>, ListCell<WindowHandle>> listCellFactory() {
-        return CellFactory.listCellFactory(singletonList((cell, item) -> cell.setText(Value.of(item)
+        return CellFactory.listCellFactory(singletonList((cell, item) -> cell.setText(Optional.ofNullable(item)
             .map(WindowHandle::title).orElse(bundle.getString("stage.selection.emptyTitle")))));
     }
 

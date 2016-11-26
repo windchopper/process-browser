@@ -6,9 +6,9 @@ import javafx.scene.control.TreeTableCell;
 import javafx.scene.control.TreeTableColumn;
 import javafx.util.Callback;
 import name.wind.common.fx.CellFactory;
-import name.wind.common.util.Value;
 
 import java.nio.file.Path;
+import java.util.Optional;
 
 import static java.util.Collections.singletonList;
 
@@ -34,7 +34,7 @@ public interface ExecutableHandle {
             switch (features.getTreeTableColumn().getId()) {
                 case "identifierColumn":
                     return new ReadOnlyStringWrapper(
-                        Value.of(features.getValue().getValue())
+                        Optional.ofNullable(features.getValue().getValue())
                             .filter(ProcessHandle.class::isInstance)
                             .map(ProcessHandle.class::cast)
                             .map(ProcessHandle::identifier)
@@ -43,13 +43,13 @@ public interface ExecutableHandle {
 
                 case "nameColumn":
                     return new ReadOnlyStringWrapper(
-                        Value.of(features.getValue().getValue())
+                        Optional.ofNullable(features.getValue().getValue())
                             .map(ExecutableHandle::name)
                             .orElse(null));
 
                 case "executablePathColumn":
                     return new ReadOnlyStringWrapper(
-                        Value.of(features.getValue().getValue())
+                        Optional.ofNullable(features.getValue().getValue())
                             .map(ExecutableHandle::path)
                             .map(Object::toString)
                             .orElse(null));

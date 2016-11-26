@@ -7,6 +7,7 @@ import name.wind.common.preferences.store.DefaultFlatPreferencesStorage;
 import name.wind.common.preferences.store.PreferencesStorage;
 
 import java.io.File;
+import java.time.Duration;
 
 public interface PreferencesAware {
 
@@ -16,11 +17,13 @@ public interface PreferencesAware {
     String PREFERENCES_ENTRY_NAME__BROWSE_INITIAL_DIRECTORY = "browseInitialDirectory";
 
     PreferencesEntry<String> filterTextPreferencesEntry = new DefaultPreferencesEntry<>(
+        Duration.ofMinutes(1),
         preferencesStorage,
         PREFERENCES_ENTRY_NAME__FILTER_TEXT,
         PreferencesEntryType.stringType);
 
     PreferencesEntry<File> browseInitialDirectoryPreferencesEntry = new DefaultPreferencesEntry<>(
+        Duration.ofMinutes(1),
         preferencesStorage,
         PREFERENCES_ENTRY_NAME__BROWSE_INITIAL_DIRECTORY,
         PreferencesEntryType.fileType);

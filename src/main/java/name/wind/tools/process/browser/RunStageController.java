@@ -10,14 +10,13 @@ import javafx.scene.control.TextField;
 import javafx.stage.FileChooser;
 import javafx.stage.Stage;
 import name.wind.application.cdi.fx.annotation.FXMLResource;
-import name.wind.common.util.Builder;
 import name.wind.common.util.KnownSystemProperties;
-import name.wind.common.util.Value;
+import name.wind.common.util.Pipeliner;
 import name.wind.tools.process.browser.windows.ProcessRoutines;
 
 import javax.enterprise.context.ApplicationScoped;
-import java.io.File;
 import java.util.Map;
+import java.util.Optional;
 
 @ApplicationScoped @FXMLResource(FXMLResources.FXML__RUN) public class RunStageController
     extends AnyStageController implements ResourceBundleAware, PreferencesAware {
@@ -27,19 +26,18 @@ import java.util.Map;
     @FXML protected Button okButton;
 
     @FXML protected void browse(ActionEvent event) {
-        FileChooser chooser = new FileChooser();
-        chooser.setInitialDirectory(
-            Value.of(browseInitialDirectoryPreferencesEntry)
-                .orElse(KnownSystemProperties.PROPERTY__USER_HOME.value()));
-
-        File selectedFile = chooser.showOpenDialog(stage);
-
-        if (selectedFile != null) {
-            browseInitialDirectoryPreferencesEntry.accept(
-                selectedFile.getParentFile());
-            commandTextField.setText(
-                selectedFile.getAbsolutePath());
-        }
+        Optional.ofNullable(
+            Pipeliner.of(FileChooser::new)
+                .set(chooser -> chooser::setInitialDirectory, Optional.ofNullable(browseInitialDirectoryPreferencesEntry.get())
+                    .orElse(KnownSystemProperties.userHomeFile.get().orElse(null)))
+                .map(chooser -> chooser.showOpenDialog(stage))
+                .get())
+            .ifPresent(selectedFile -> {
+                browseInitialDirectoryPreferencesEntry.accept(
+                    selectedFile.getParentFile());
+                commandTextField.setText(
+                    selectedFile.getAbsolutePath());
+            });
     }
 
     @FXML protected void run(ActionEvent event) {
@@ -54,7 +52,7 @@ import java.util.Map;
 
     @Override protected void start(Stage stage, String fxmlResource, Map<String, ?> parameters) {
         super.start(
-            Builder.direct(() -> stage)
+            Pipeliner.of(() -> stage)
                 .set(target -> target::setTitle, bundle.getString("stage.run.title"))
                 .get(),
             fxmlResource,

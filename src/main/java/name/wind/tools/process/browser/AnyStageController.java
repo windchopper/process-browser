@@ -4,7 +4,7 @@ import javafx.scene.control.Alert;
 import javafx.scene.image.Image;
 import javafx.stage.Stage;
 import name.wind.application.cdi.fx.StageController;
-import name.wind.common.util.Builder;
+import name.wind.common.util.Pipeliner;
 
 import java.util.Map;
 import java.util.function.Supplier;
@@ -17,7 +17,7 @@ public abstract class AnyStageController extends StageController {
 
     @Override protected void start(Stage stage, String fxmlResource, Map<String, ?> parameters) {
         super.start(
-            Builder.direct(() -> stage)
+            Pipeliner.of(() -> stage)
                 .add(target -> target::getIcons, singletonList(iconImage))
                 .get(),
             fxmlResource,
@@ -25,7 +25,7 @@ public abstract class AnyStageController extends StageController {
     }
 
     @Override protected Alert prepareAlert(Supplier<Alert> constructor) {
-        return Builder.direct(() -> super.prepareAlert(constructor))
+        return Pipeliner.of(() -> super.prepareAlert(constructor))
             .accept(alert -> ((Stage) alert.getDialogPane().getScene().getWindow()).getIcons().add(iconImage))
             .get();
     }

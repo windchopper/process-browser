@@ -15,20 +15,18 @@ import name.wind.application.cdi.annotation.Action;
 import name.wind.application.cdi.fx.annotation.FXMLResource;
 import name.wind.application.cdi.fx.event.ActionEngage;
 import name.wind.application.cdi.fx.event.FXMLResourceOpen;
-import name.wind.common.search.WildcardMultiphraseMatcher;
-import name.wind.common.util.Builder;
-import name.wind.common.util.Value;
+import name.wind.common.util.HierarchyIterator;
+import name.wind.common.util.Pipeliner;
 import name.wind.tools.process.browser.windows.*;
 
 import javax.enterprise.context.ApplicationScoped;
 import javax.enterprise.event.Event;
 import javax.inject.Inject;
-import java.util.Collection;
-import java.util.HashMap;
-import java.util.List;
-import java.util.Map;
+import java.util.*;
 import java.util.function.Supplier;
+import java.util.regex.Pattern;
 import java.util.stream.Stream;
+import java.util.stream.StreamSupport;
 
 import static java.util.Collections.emptyMap;
 import static java.util.stream.Collectors.toList;
@@ -44,12 +42,11 @@ import static java.util.stream.Collectors.toList;
     @FXML protected MenuItem makeFullscreenMenuItem;
     @FXML protected MenuItem terminateMenuItem;
 
-    private final ExecutableHandleSearch processSearch = new ExecutableHandleSearch();
     private List<ProcessHandle> lastLoadedProcessHandles;
 
     @Override protected void start(Stage stage, String fxmlResource, Map<String, ?> parameters) {
         super.start(
-            Builder.direct(() -> stage)
+            Pipeliner.of(() -> stage)
                 .set(target -> target::setTitle, bundle.getString("stage.processList.title"))
                 .get(),
             fxmlResource,
@@ -66,7 +63,7 @@ import static java.util.stream.Collectors.toList;
         processTreeTableView.setRoot(processTreeRoot);
 
         BooleanBinding selectionIsProcessHandle = Bindings.createBooleanBinding(
-            () -> Value.of(processTreeTableView.getSelectionModel().getSelectedItem()).filter(selectedItem -> selectedItem != null && selectedItem.getValue() instanceof ProcessHandle).present(),
+            () -> Optional.of(processTreeTableView.getSelectionModel().getSelectedItem()).filter(selectedItem -> selectedItem != null && selectedItem.getValue() instanceof ProcessHandle).isPresent(),
             processTreeTableView.getSelectionModel().selectedItemProperty());
         Stream.of(makeFullscreenMenuItem, terminateMenuItem).forEach(
             menuItem -> menuItem.disableProperty().bind(selectionIsProcessHandle.not()));
@@ -85,7 +82,7 @@ import static java.util.stream.Collectors.toList;
     }
 
     @Override protected Dimension2D preferredStageSize() {
-        return Value.of(Screen.getPrimary().getVisualBounds())
+        return Pipeliner.of(Screen.getPrimary().getVisualBounds())
             .map(visualBounds -> new Dimension2D(visualBounds.getWidth() / 2, visualBounds.getHeight() / 2))
             .get();
     }
@@ -94,19 +91,19 @@ import static java.util.stream.Collectors.toList;
         applyFilter(newValue);
     }
 
+    private boolean matches(TreeItem<ExecutableHandle> item, String filterText) {
+        Pattern pattern = Pattern.compile(filterText);
+        return pattern.matcher(item.getValue().name()).find()
+            || pattern.matcher(item.getValue().path().toString()).find();
+    }
+
     private void applyFilter(String filterText) {
-        ExecutableHandleSearch.Continuation continuation = new ExecutableHandleSearch.Continuation();
-        WildcardMultiphraseMatcher mather = new WildcardMultiphraseMatcher(filterText);
-
-        processSearch.search(
-            continuation,
-            mather.toPredicate(object -> object instanceof ExecutableHandle
-                ? ((ExecutableHandle) object).name()
-                : ""),
-            lastLoadedProcessHandles);
-
-        loadProcessTree(processTreeTableView.getRoot(), continuation.searchResult());
         filterTextPreferencesEntry.accept(filterText);
+        loadProcessTree(processTreeTableView.getRoot(), StreamSupport.stream(Spliterators.spliterator(
+                new HierarchyIterator<>(processTreeTableView.getRoot(), TreeItem::getChildren), 0, Spliterator.IMMUTABLE), false)
+            .filter(item -> matches(item, filterText) && item.getValue() instanceof ProcessHandle)
+            .map(item -> (ProcessHandle) item.getValue())
+            .collect(toList()));
     }
 
     private void loadProcessTree(TreeItem<ExecutableHandle> root, Collection<ProcessHandle> processHandles) {
@@ -138,7 +135,7 @@ import static java.util.stream.Collectors.toList;
     @FXML protected void run(ActionEvent event) {
         fxmlFormOpenEvent.fire(
             new FXMLResourceOpen(
-                Builder.direct(Stage::new)
+                Pipeliner.of(Stage::new)
                     .set(target -> target::initOwner, stage)
                     .set(target -> target::initModality, Modality.APPLICATION_MODAL)
                     .set(target -> target::setResizable, false)
@@ -156,13 +153,13 @@ import static java.util.stream.Collectors.toList;
         if (windowHandles.size() > 1) {
             fxmlFormOpenEvent.fire(
                 new FXMLResourceOpen(
-                    Builder.direct(Stage::new)
+                    Pipeliner.of(Stage::new)
                         .set(target -> target::initOwner, stage)
                         .set(target -> target::initModality, Modality.APPLICATION_MODAL)
                         .set(target -> target::setResizable, false)
                         .get(),
                     FXMLResources.FXML__SELECTION,
-                    Builder.directMapBuilder((Supplier<Map<String, Object>>) HashMap::new)
+                    Pipeliner.of((Supplier<Map<String, Object>>) HashMap::new)
                         .set(map -> value -> map.put("windowHandles", value), windowHandles)
                         .get()));
         } else if (windowHandles.size() > 0) {
@@ -180,7 +177,7 @@ import static java.util.stream.Collectors.toList;
             .map(choice -> choice == ButtonType.YES)
             .orElse(false);
 
-        Value<String> errorMessage = Value.empty();
+        Optional<String> errorMessage = Optional.empty();
 
         try {
             if (terminate) {
@@ -190,7 +187,7 @@ import static java.util.stream.Collectors.toList;
                 selectedItem.getParent().getChildren().remove(selectedItem);
             }
         } catch (Win32Exception thrown) {
-            errorMessage = Value.of(String.format(bundle.getString("stage.processList.error.unexpected"), thrown.getMessage()));
+            errorMessage = Optional.of(String.format(bundle.getString("stage.processList.error.unexpected"), thrown.getMessage()));
         }
 
         errorMessage.ifPresent(message -> {
