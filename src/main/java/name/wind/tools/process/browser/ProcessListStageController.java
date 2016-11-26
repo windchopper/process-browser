@@ -15,7 +15,6 @@ import name.wind.application.cdi.annotation.Action;
 import name.wind.application.cdi.fx.annotation.FXMLResource;
 import name.wind.application.cdi.fx.event.ActionEngage;
 import name.wind.application.cdi.fx.event.FXMLResourceOpen;
-import name.wind.common.util.HierarchyIterator;
 import name.wind.common.util.Pipeliner;
 import name.wind.tools.process.browser.windows.*;
 
@@ -26,7 +25,6 @@ import java.util.*;
 import java.util.function.Supplier;
 import java.util.regex.Pattern;
 import java.util.stream.Stream;
-import java.util.stream.StreamSupport;
 
 import static java.util.Collections.emptyMap;
 import static java.util.stream.Collectors.toList;
@@ -63,7 +61,7 @@ import static java.util.stream.Collectors.toList;
         processTreeTableView.setRoot(processTreeRoot);
 
         BooleanBinding selectionIsProcessHandle = Bindings.createBooleanBinding(
-            () -> Optional.of(processTreeTableView.getSelectionModel().getSelectedItem()).filter(selectedItem -> selectedItem != null && selectedItem.getValue() instanceof ProcessHandle).isPresent(),
+            () -> Optional.ofNullable(processTreeTableView.getSelectionModel().getSelectedItem()).filter(selectedItem -> selectedItem != null && selectedItem.getValue() instanceof ProcessHandle).isPresent(),
             processTreeTableView.getSelectionModel().selectedItemProperty());
         Stream.of(makeFullscreenMenuItem, terminateMenuItem).forEach(
             menuItem -> menuItem.disableProperty().bind(selectionIsProcessHandle.not()));
@@ -91,18 +89,16 @@ import static java.util.stream.Collectors.toList;
         applyFilter(newValue);
     }
 
-    private boolean matches(TreeItem<ExecutableHandle> item, String filterText) {
+    private boolean matches(ExecutableHandle handle, String filterText) {
         Pattern pattern = Pattern.compile(filterText);
-        return pattern.matcher(item.getValue().name()).find()
-            || pattern.matcher(item.getValue().path().toString()).find();
+        return pattern.matcher(Optional.ofNullable(handle).map(ExecutableHandle::name).orElse("")).find()
+            || pattern.matcher(Optional.ofNullable(handle).map(ExecutableHandle::path).map(Object::toString).orElse("")).find();
     }
 
     private void applyFilter(String filterText) {
         filterTextPreferencesEntry.accept(filterText);
-        loadProcessTree(processTreeTableView.getRoot(), StreamSupport.stream(Spliterators.spliterator(
-                new HierarchyIterator<>(processTreeTableView.getRoot(), TreeItem::getChildren), 0, Spliterator.IMMUTABLE), false)
-            .filter(item -> matches(item, filterText) && item.getValue() instanceof ProcessHandle)
-            .map(item -> (ProcessHandle) item.getValue())
+        loadProcessTree(processTreeTableView.getRoot(), lastLoadedProcessHandles.stream()
+            .filter(handle -> matches(handle, filterText))
             .collect(toList()));
     }
 
@@ -187,7 +183,7 @@ import static java.util.stream.Collectors.toList;
                 selectedItem.getParent().getChildren().remove(selectedItem);
             }
         } catch (Win32Exception thrown) {
-            errorMessage = Optional.of(String.format(bundle.getString("stage.processList.error.unexpected"), thrown.getMessage()));
+            errorMessage = Optional.ofNullable(String.format(bundle.getString("stage.processList.error.unexpected"), thrown.getMessage()));
         }
 
         errorMessage.ifPresent(message -> {
