@@ -1,6 +1,7 @@
 package name.wind.tools.process.browser;
 
 import com.sun.jna.platform.win32.Win32Exception;
+import javafx.application.Platform;
 import javafx.beans.binding.Bindings;
 import javafx.beans.binding.BooleanBinding;
 import javafx.beans.value.ObservableValue;
@@ -21,6 +22,7 @@ import name.wind.tools.process.browser.windows.*;
 import javax.enterprise.context.ApplicationScoped;
 import javax.enterprise.event.Event;
 import javax.inject.Inject;
+import java.time.Duration;
 import java.util.*;
 import java.util.function.Supplier;
 import java.util.regex.Pattern;
@@ -32,13 +34,34 @@ import static java.util.stream.Collectors.toList;
 @ApplicationScoped @FXMLResource(FXMLResources.FXML__PROCESS_LIST) public class ProcessListStageController
     extends AnyStageController implements ResourceBundleAware, PreferencesAware {
 
+    private class AutoRefreshThread extends Thread {
+
+        public AutoRefreshThread() {
+            setDaemon(true);
+        }
+
+        @Override public void run() {
+            while (true) {
+                try {
+                    Thread.sleep(Duration.ofSeconds(5).toMillis());
+                    if (toggleAutoRefreshMenuItem.isSelected()) Platform.runLater(ProcessListStageController.this::refreshImpl);
+                } catch (InterruptedException thrown) {
+                    break;
+                }
+            }
+        }
+
+    }
+
     @Inject protected Event<FXMLResourceOpen> fxmlFormOpenEvent;
     @Inject @Action("makeFullscreen") protected Event<ActionEngage<WindowHandle>> makeFullscreenActionEngage;
 
     @FXML protected TreeTableView<ExecutableHandle> processTreeTableView;
     @FXML protected TextField filterTextField;
+    @FXML protected MenuItem refreshMenuItem;
     @FXML protected MenuItem makeFullscreenMenuItem;
     @FXML protected MenuItem terminateMenuItem;
+    @FXML protected CheckMenuItem toggleAutoRefreshMenuItem;
 
     private List<ProcessHandle> lastLoadedProcessHandles;
 
@@ -61,7 +84,12 @@ import static java.util.stream.Collectors.toList;
         processTreeTableView.setRoot(processTreeRoot);
 
         BooleanBinding selectionIsProcessHandle = Bindings.createBooleanBinding(
-            () -> Optional.ofNullable(processTreeTableView.getSelectionModel().getSelectedItem()).filter(selectedItem -> selectedItem != null && selectedItem.getValue() instanceof ProcessHandle).isPresent(),
+            () -> Optional.ofNullable(processTreeTableView.getSelectionModel().getSelectedItem())
+                .filter(Objects::nonNull)
+                .map(TreeItem::getValue)
+                .filter(ProcessHandle.class::isInstance)
+                .map(ProcessHandle.class::cast)
+                .isPresent(),
             processTreeTableView.getSelectionModel().selectedItemProperty());
         Stream.of(makeFullscreenMenuItem, terminateMenuItem).forEach(
             menuItem -> menuItem.disableProperty().bind(selectionIsProcessHandle.not()));
@@ -77,6 +105,9 @@ import static java.util.stream.Collectors.toList;
         }
 
         filterTextField.textProperty().addListener(this::filterTextChanged);
+        refreshMenuItem.disableProperty().bind(toggleAutoRefreshMenuItem.selectedProperty());
+
+        new AutoRefreshThread().start();
     }
 
     @Override protected Dimension2D preferredStageSize() {
@@ -119,13 +150,17 @@ import static java.util.stream.Collectors.toList;
         processTreeTableView.sort();
     }
 
-    @FXML protected void refresh(ActionEvent event) {
+    protected void refreshImpl() {
         lastLoadedProcessHandles = ProcessRoutines.allAvailableProcesses().stream()
             .filter(retrievalResult -> retrievalResult.exception() == null)
             .map(ProcessHandleRetrievalResult::processHandle)
             .collect(
                 toList());
         applyFilter(filterTextField.getText());
+    }
+
+    @FXML protected void refresh(ActionEvent event) {
+        refreshImpl();
     }
 
     @FXML protected void run(ActionEvent event) {
