@@ -48,7 +48,7 @@
                 <ContextMenu>
                     <items>
                         <MenuItem fx:id="refreshMenuItem" text="%stage.processList.contextMenu.refresh" onAction="#refresh"/>
-                        <CheckMenuItem fx:id="toggleAutoRefreshMenuItem" text="%stage.processList.contextMenu.toggleAutoRefresh"/>
+                        <CheckMenuItem fx:id="toggleAutoRefreshMenuItem" text="%stage.processList.contextMenu.autoRefresh" onAction="#toggleAutoRefresh"/>
                         <SeparatorMenuItem/>
                         <MenuItem fx:id="makeFullscreenMenuItem" text="%stage.processList.contextMenu.makeFullscreen" onAction="#makeFullscreen"/>
                         <MenuItem fx:id="terminateMenuItem" text="%stage.processList.contextMenu.terminate" onAction="#terminate"/>

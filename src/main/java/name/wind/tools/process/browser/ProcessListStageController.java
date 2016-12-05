@@ -106,6 +106,8 @@ import static java.util.stream.Collectors.toList;
 
         filterTextField.textProperty().addListener(this::filterTextChanged);
         refreshMenuItem.disableProperty().bind(toggleAutoRefreshMenuItem.selectedProperty());
+        toggleAutoRefreshMenuItem.setSelected(Optional.ofNullable(autoRefreshPreferencesEntry.get())
+            .orElse(false));
 
         new AutoRefreshThread().start();
     }
@@ -161,6 +163,10 @@ import static java.util.stream.Collectors.toList;
 
     @FXML protected void refresh(ActionEvent event) {
         refreshImpl();
+    }
+
+    @FXML protected void toggleAutoRefresh(ActionEvent event) {
+        autoRefreshPreferencesEntry.accept(toggleAutoRefreshMenuItem.isSelected());
     }
 
     @FXML protected void run(ActionEvent event) {
