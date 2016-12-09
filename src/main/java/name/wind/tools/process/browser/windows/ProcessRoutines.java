@@ -32,7 +32,7 @@ public class ProcessRoutines implements JnaAware {
 
         if (processHandle != null) {
             try {
-                return new ProcessHandle(processIdentifier, processModuleHandles(processHandle, characters, moduleHandles));
+                return new ProcessHandle(processIdentifier, processModuleHandles(processIdentifier, processHandle, characters, moduleHandles));
             } finally {
                 kernel.CloseHandle(processHandle);
             }
@@ -41,13 +41,13 @@ public class ProcessRoutines implements JnaAware {
         throw new LastWin32Exception();
     }
 
-    private static List<ProcessModuleHandle> processModuleHandles(WinNT.HANDLE processHandle, char[] characters, WinNT.HMODULE[] moduleHandles) {
+    private static List<ProcessModuleHandle> processModuleHandles(int processIdentifier, WinNT.HANDLE processHandle, char[] characters, WinNT.HMODULE[] moduleHandles) {
         IntByReference moduleHandlesCount = new IntByReference();
         if (psapi.EnumProcessModulesEx(processHandle, moduleHandles, moduleHandles.length * Native.POINTER_SIZE, moduleHandlesCount, PsapiExtended.LIST_MODULES_ALL)) {
             return stream(moduleHandles, 0, moduleHandlesCount.getValue() / Native.POINTER_SIZE)
                 .map(moduleHandle -> {
                     psapi.GetModuleFileNameExW(processHandle, moduleHandle, characters, characters.length);
-                    return new ProcessModuleHandle(Paths.get(Native.toString(characters)));
+                    return new ProcessModuleHandle(processIdentifier, Paths.get(Native.toString(characters)));
                 })
                 .collect(
                     toList());

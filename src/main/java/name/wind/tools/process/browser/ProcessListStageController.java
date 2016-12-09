@@ -30,7 +30,7 @@ import java.util.stream.Stream;
 
 import static java.util.Collections.emptyMap;
 import static java.util.stream.Collectors.toList;
-import static java.util.stream.Collectors.toMap;
+import static java.util.stream.Collectors.toSet;
 
 @ApplicationScoped @FXMLResource(FXMLResources.FXML__PROCESS_LIST) public class ProcessListStageController
     extends AnyStageController implements ResourceBundleAware, PreferencesAware {
@@ -137,24 +137,11 @@ import static java.util.stream.Collectors.toMap;
     }
 
     private void loadProcessTree(TreeItem<ExecutableHandle> root, Collection<ProcessHandle> processHandles) {
-        ProcessHandle oldSelectedProcessHandle = null;
-        ProcessModuleHandle oldSelectedProcessModuleHandle = null;
+        ExecutableHandle oldSelectedHandle = Optional.ofNullable(processTreeTableView.getSelectionModel().getSelectedItem())
+            .map(TreeItem::getValue).orElse(null);
 
-        TreeItem oldSelectedItem = processTreeTableView.getSelectionModel().getSelectedItem();
-
-        if (oldSelectedItem != null) {
-            if (oldSelectedItem.getValue() instanceof ProcessHandle) {
-                oldSelectedProcessHandle = (ProcessHandle) oldSelectedItem.getValue();
-            } else if (oldSelectedItem.getValue() instanceof ProcessModuleHandle) {
-                oldSelectedProcessModuleHandle = (ProcessModuleHandle) oldSelectedItem.getValue();
-                oldSelectedProcessHandle = (ProcessHandle) oldSelectedItem.getParent().getValue();
-            }
-        }
-
-        Map<Integer, ExecutableHandle> oldExpandedHandles = root.getChildren().stream()
-            .filter(TreeItem::isExpanded).map(TreeItem::getValue).collect(toMap(
-                handle -> ((ProcessHandle) handle).identifier(),
-                handle -> handle));
+        Set<Integer> oldExpandedPIDs = root.getChildren().stream()
+            .filter(TreeItem::isExpanded).map(TreeItem::getValue).map(handle -> ((ProcessHandle) handle).identifier()).collect(toSet());
 
         processTreeTableView.getSelectionModel().clearSelection(); // javafx bug
         root.getChildren().clear();
@@ -164,22 +151,20 @@ import static java.util.stream.Collectors.toMap;
             TreeItem<ExecutableHandle> processItem = new TreeItem<>(processHandle);
             root.getChildren().add(processItem);
 
-            if (oldExpandedHandles.containsKey(identifier)) {
+            if (oldExpandedPIDs.contains(identifier)) {
                 processItem.setExpanded(true);
             }
 
-            if (oldSelectedProcessHandle != null
-                    && oldSelectedProcessModuleHandle == null
-                    && oldSelectedProcessHandle.identifier() == processHandle.identifier()) {
+            if (oldSelectedHandle instanceof ProcessHandle && ((ProcessHandle) oldSelectedHandle).identifier() == processHandle.identifier()) {
                 processTreeTableView.getSelectionModel().select(processItem);
             }
 
             for (ProcessModuleHandle processModuleHandle : processHandle.modules()) {
                 TreeItem<ExecutableHandle> processModuleItem = new TreeItem<>(processModuleHandle);
                 processItem.getChildren().add(processModuleItem);
-                if (oldSelectedProcessModuleHandle != null
-                        && oldSelectedProcessHandle.identifier() == processHandle.identifier()
-                        && Objects.equals(oldSelectedProcessModuleHandle.name(), processModuleHandle.name())) {
+                if (oldSelectedHandle instanceof ProcessModuleHandle
+                        && ((ProcessModuleHandle) oldSelectedHandle).parentIdentifier() == processHandle.identifier()
+                        && Objects.equals(oldSelectedHandle.name(), processModuleHandle.name())) {
                     processTreeTableView.getSelectionModel().select(processModuleItem);
                 }
             }
