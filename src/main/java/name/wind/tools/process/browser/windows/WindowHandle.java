@@ -5,13 +5,15 @@ import javafx.scene.control.ListCell;
 import javafx.scene.control.ListView;
 import javafx.util.Callback;
 import name.wind.common.fx.CellFactory;
-import name.wind.tools.process.browser.ResourceBundleAware;
 
 import java.util.Optional;
+import java.util.ResourceBundle;
 
 import static java.util.Collections.singletonList;
 
-public class WindowHandle implements ResourceBundleAware {
+public class WindowHandle {
+
+    private static final ResourceBundle bundle = ResourceBundle.getBundle("name.wind.tools.process.browser.i18n.messages");
 
     private final WinDef.HWND handle;
     private final String title;

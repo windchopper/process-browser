@@ -9,8 +9,11 @@ import org.jboss.weld.environment.se.Weld;
 import org.jboss.weld.environment.se.WeldContainer;
 
 import javax.enterprise.inject.spi.BeanManager;
+import java.util.ResourceBundle;
 
-public class Launcher extends Application implements KnownSystemProperties, ResourceBundleAware {
+public class Launcher extends Application implements KnownSystemProperties {
+
+    private static final ResourceBundle bundle = ResourceBundle.getBundle("name.wind.tools.process.browser.i18n.messages");
 
     private Weld weld;
     private WeldContainer weldContainer;

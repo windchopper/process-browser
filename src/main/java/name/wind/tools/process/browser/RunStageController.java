@@ -17,9 +17,12 @@ import name.wind.tools.process.browser.windows.ProcessRoutines;
 import javax.enterprise.context.ApplicationScoped;
 import java.util.Map;
 import java.util.Optional;
+import java.util.ResourceBundle;
 
 @ApplicationScoped @FXMLResource(FXMLResources.FXML__RUN) public class RunStageController
-    extends AnyStageController implements ResourceBundleAware, PreferencesAware {
+    extends AnyStageController implements PreferencesAware {
+
+    private static final ResourceBundle bundle = ResourceBundle.getBundle("name.wind.tools.process.browser.i18n.messages");
 
     @FXML protected TextField commandTextField;
     @FXML protected CheckBox elevateCheckBox;

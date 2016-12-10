@@ -33,7 +33,9 @@ import static java.util.stream.Collectors.toList;
 import static java.util.stream.Collectors.toSet;
 
 @ApplicationScoped @FXMLResource(FXMLResources.FXML__PROCESS_LIST) public class ProcessListStageController
-    extends AnyStageController implements ResourceBundleAware, PreferencesAware {
+    extends AnyStageController implements PreferencesAware {
+
+    private static final ResourceBundle bundle = ResourceBundle.getBundle("name.wind.tools.process.browser.i18n.messages");
 
     private class AutoRefreshThread extends Thread {
 

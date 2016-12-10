@@ -25,9 +25,12 @@ import javax.enterprise.event.Observes;
 import javax.inject.Inject;
 import java.util.Collection;
 import java.util.Map;
+import java.util.ResourceBundle;
 
 @ApplicationScoped @FXMLResource(FXMLResources.FXML__SELECTION) public class SelectionStageController
-    extends AnyStageController implements ResourceBundleAware {
+    extends AnyStageController {
+
+    private static final ResourceBundle bundle = ResourceBundle.getBundle("name.wind.tools.process.browser.i18n.messages");
 
     @Inject @Action("makeFullscreen") protected Event<ActionEngage<WindowHandle>> makeFullscreenActionEngage;
 
