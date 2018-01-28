@@ -4,7 +4,7 @@
          xsi:schemaLocation="http://maven.apache.org/POM/4.0.0 http://maven.apache.org/xsd/maven-4.0.0.xsd">
     <modelVersion>4.0.0</modelVersion>
 
-    <groupId>name.wind.tools</groupId>
+    <groupId>com.github.windchopper.tools</groupId>
     <artifactId>process-browser</artifactId>
     <version>1.0</version>
 
@@ -39,28 +39,8 @@
             <version>3.20.0-GA</version>
         </dependency>
         <dependency>
-            <groupId>name.wind.common</groupId>
+            <groupId>com.github.windchopper</groupId>
             <artifactId>common</artifactId>
-            <version>1.0</version>
-        </dependency>
-        <dependency>
-            <groupId>name.wind.common</groupId>
-            <artifactId>common-preferences</artifactId>
-            <version>1.0</version>
-        </dependency>
-        <dependency>
-            <groupId>name.wind.common</groupId>
-            <artifactId>common-fx</artifactId>
-            <version>1.0</version>
-        </dependency>
-        <dependency>
-            <groupId>name.wind.common</groupId>
-            <artifactId>common-cdi</artifactId>
-            <version>1.0</version>
-        </dependency>
-        <dependency>
-            <groupId>name.wind.application</groupId>
-            <artifactId>application-cdi-fx</artifactId>
             <version>1.0</version>
         </dependency>
         <!--<dependency>-->
@@ -95,7 +75,7 @@
                 </executions>
                 <configuration>
                     <vendor>wind.name</vendor>
-                    <mainClass>name.wind.tools.process.browser.Launcher</mainClass>
+                    <mainClass>com.github.windchopper.tools.process.browser.Launcher</mainClass>
                     <verbose>true</verbose>
                 </configuration>
             </plugin>
