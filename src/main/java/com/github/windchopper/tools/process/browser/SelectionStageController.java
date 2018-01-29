@@ -30,7 +30,7 @@ import java.util.ResourceBundle;
 @ApplicationScoped @FXMLResource(FXMLResources.FXML__SELECTION) public class SelectionStageController
     extends AnyStageController {
 
-    private static final ResourceBundle bundle = ResourceBundle.getBundle("name.wind.tools.process.browser.i18n.messages");
+    private static final ResourceBundle bundle = ResourceBundle.getBundle("com.github.windchopper.tools.process.browser.i18n.messages");
 
     @Inject @Action("makeFullscreen") protected Event<ActionEngage<WindowHandle>> makeFullscreenActionEngage;
 

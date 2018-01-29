@@ -22,7 +22,7 @@ import java.util.ResourceBundle;
 @ApplicationScoped @FXMLResource(FXMLResources.FXML__RUN) public class RunStageController
     extends AnyStageController implements PreferencesAware {
 
-    private static final ResourceBundle bundle = ResourceBundle.getBundle("name.wind.tools.process.browser.i18n.messages");
+    private static final ResourceBundle bundle = ResourceBundle.getBundle("com.github.windchopper.tools.process.browser.i18n.messages");
 
     @FXML protected TextField commandTextField;
     @FXML protected CheckBox elevateCheckBox;

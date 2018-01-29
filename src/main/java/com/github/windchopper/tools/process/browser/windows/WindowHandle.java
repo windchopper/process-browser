@@ -13,7 +13,7 @@ import static java.util.Collections.singletonList;
 
 public class WindowHandle {
 
-    private static final ResourceBundle bundle = ResourceBundle.getBundle("name.wind.tools.process.browser.i18n.messages");
+    private static final ResourceBundle bundle = ResourceBundle.getBundle("com.github.windchopper.tools.process.browser.i18n.messages");
 
     private final WinDef.HWND handle;
     private final String title;

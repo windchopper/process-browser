@@ -13,7 +13,7 @@ import java.util.ResourceBundle;
 @ApplicationScoped @FXMLResource(FXMLResources.FXML__NOT_WINDOWS) public class NotWindowsStageController
     extends AnyStageController {
 
-    private static final ResourceBundle bundle = ResourceBundle.getBundle("name.wind.tools.process.browser.i18n.messages");
+    private static final ResourceBundle bundle = ResourceBundle.getBundle("com.github.windchopper.tools.process.browser.i18n.messages");
 
     @Override protected Dimension2D preferredStageSize() {
         return Pipeliner.of(Screen.getPrimary().getVisualBounds())

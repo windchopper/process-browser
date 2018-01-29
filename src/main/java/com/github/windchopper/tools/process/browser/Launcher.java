@@ -13,7 +13,7 @@ import java.util.ResourceBundle;
 
 public class Launcher extends Application implements KnownSystemProperties {
 
-    private static final ResourceBundle bundle = ResourceBundle.getBundle("name.wind.tools.process.browser.i18n.messages");
+    private static final ResourceBundle bundle = ResourceBundle.getBundle("com.github.windchopper.tools.process.browser.i18n.messages");
 
     private Weld weld;
     private WeldContainer weldContainer;
