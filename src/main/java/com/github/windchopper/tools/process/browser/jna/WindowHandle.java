@@ -1,4 +1,4 @@
-package com.github.windchopper.tools.process.browser.windows;
+package com.github.windchopper.tools.process.browser.jna;
 
 import com.sun.jna.platform.win32.WinDef;
 import javafx.scene.control.ListCell;

@@ -1,18 +1,17 @@
-package com.github.windchopper.tools.process.browser.windows;
+package com.github.windchopper.tools.process.browser.jna;
 
-import com.sun.jna.platform.win32.User32;
-import com.sun.jna.platform.win32.Win32Exception;
-import com.sun.jna.platform.win32.WinDef;
-import com.sun.jna.platform.win32.WinUser;
+import com.sun.jna.platform.win32.*;
 import com.sun.jna.ptr.IntByReference;
-import com.github.windchopper.tools.process.browser.windows.jna.User32Extended;
 
 import java.util.ArrayList;
 import java.util.List;
 
-public class WindowRoutines implements JnaAware {
+public interface WindowRoutines {
 
-    public static String windowTitle(WinDef.HWND hwnd) {
+    Kernel32 kernel = Kernel32.INSTANCE;
+    User32 user = User32.INSTANCE;
+
+    static String windowTitle(WinDef.HWND hwnd) {
         int bufferLength = user.GetWindowTextLength(hwnd);
 
         if (bufferLength > 0) {
@@ -28,7 +27,7 @@ public class WindowRoutines implements JnaAware {
         return null;
     }
 
-    public static List<WindowHandle> processWindowHandles(ProcessHandle processHandle) {
+    static List<WindowHandle> processWindowHandles(long pid) {
         List<WindowHandle> windowHandles = new ArrayList<>();
 
         if (user.EnumWindows((hwnd, pointer) -> {
@@ -39,7 +38,7 @@ public class WindowRoutines implements JnaAware {
                     throw new Win32Exception(kernel.GetLastError());
                 }
 
-                if (windowProcess.getValue() == processHandle.identifier()) {
+                if (windowProcess.getValue() == (int) pid) {
                     windowHandles.add(
                         new WindowHandle(
                             hwnd, windowTitle(hwnd)));
@@ -54,7 +53,7 @@ public class WindowRoutines implements JnaAware {
         }
     }
 
-    public static void applyMonitorSizeToWindow(WindowHandle windowHandle) {
+    static void applyMonitorSizeToWindow(WindowHandle windowHandle) {
         WinUser.HMONITOR hMonitor = user.MonitorFromWindow(windowHandle.handle(), User32.MONITOR_DEFAULTTONEAREST);
         if (hMonitor == null) {
             throw new Win32Exception(kernel.GetLastError());
@@ -69,7 +68,7 @@ public class WindowRoutines implements JnaAware {
                     monitorInfo.rcMonitor.top,
                     monitorInfo.rcMonitor.right,
                     monitorInfo.rcMonitor.bottom,
-                    User32Extended.SWP_FRAMECHANGED)) {
+                    0x0020)) { // SWP_FRAMECHANGED
                 throw new Win32Exception(kernel.GetLastError());
             }
         } else {
@@ -77,7 +76,7 @@ public class WindowRoutines implements JnaAware {
         }
     }
 
-    public static void removeWindowFrame(WindowHandle windowHandle) {
+    static void removeWindowFrame(WindowHandle windowHandle) {
         int originalWindowStyle = user.GetWindowLong(windowHandle.handle(), User32.GWL_STYLE);
 
         if (originalWindowStyle == 0) {

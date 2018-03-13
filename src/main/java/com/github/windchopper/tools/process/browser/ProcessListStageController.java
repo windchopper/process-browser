@@ -4,9 +4,10 @@ import com.github.windchopper.common.fx.application.annotation.Action;
 import com.github.windchopper.common.fx.application.fx.annotation.FXMLResource;
 import com.github.windchopper.common.fx.application.fx.event.ActionEngage;
 import com.github.windchopper.common.fx.application.fx.event.FXMLResourceOpen;
+import com.github.windchopper.common.util.KnownSystemProperties;
 import com.github.windchopper.common.util.Pipeliner;
-import com.github.windchopper.tools.process.browser.windows.*;
-import com.sun.jna.platform.win32.Win32Exception;
+import com.github.windchopper.tools.process.browser.jna.WindowHandle;
+import com.github.windchopper.tools.process.browser.jna.WindowRoutines;
 import javafx.application.Platform;
 import javafx.beans.binding.Bindings;
 import javafx.beans.binding.BooleanBinding;
@@ -59,14 +60,14 @@ import static java.util.stream.Collectors.toSet;
     @Inject protected Event<FXMLResourceOpen> fxmlFormOpenEvent;
     @Inject @Action("makeFullscreen") protected Event<ActionEngage<WindowHandle>> makeFullscreenActionEngage;
 
-    @FXML protected TreeTableView<ExecutableHandle> processTreeTableView;
+    @FXML protected TreeTableView<ProcessHandleRepresentative> processTreeTableView;
     @FXML protected TextField filterTextField;
     @FXML protected MenuItem refreshMenuItem;
     @FXML protected MenuItem makeFullscreenMenuItem;
     @FXML protected MenuItem terminateMenuItem;
     @FXML protected CheckMenuItem toggleAutoRefreshMenuItem;
 
-    private List<ProcessHandle> lastLoadedProcessHandles;
+    private List<ProcessHandleRepresentative> lastLoadedProcessHandles;
 
     @Override protected void start(Stage stage, String fxmlResource, Map<String, ?> parameters) {
         super.start(
@@ -76,22 +77,18 @@ import static java.util.stream.Collectors.toSet;
             fxmlResource,
             parameters);
 
-        TreeItem<ExecutableHandle> processTreeRoot = new TreeItem<>(null);
+        TreeItem<ProcessHandleRepresentative> processTreeRoot = new TreeItem<>(null);
         processTreeRoot.setExpanded(true);
 
-        loadProcessTree(processTreeRoot, lastLoadedProcessHandles = ProcessRoutines.allAvailableProcesses().stream()
-            .filter(retrievalResult -> retrievalResult.exception() == null)
-            .map(ProcessHandleRetrievalResult::processHandle)
-            .collect(
+        loadProcessTree(processTreeRoot, lastLoadedProcessHandles = ProcessHandle.allProcesses()
+            .map(ProcessHandleRepresentative::new).collect(
                 toList()));
+
         processTreeTableView.setRoot(processTreeRoot);
 
         BooleanBinding selectionIsProcessHandle = Bindings.createBooleanBinding(
             () -> Optional.ofNullable(processTreeTableView.getSelectionModel().getSelectedItem())
-                .filter(Objects::nonNull)
                 .map(TreeItem::getValue)
-                .filter(ProcessHandle.class::isInstance)
-                .map(ProcessHandle.class::cast)
                 .isPresent(),
             processTreeTableView.getSelectionModel().selectedItemProperty());
         Stream.of(makeFullscreenMenuItem, terminateMenuItem).forEach(
@@ -125,10 +122,10 @@ import static java.util.stream.Collectors.toSet;
         applyFilter(newValue);
     }
 
-    private boolean matches(ExecutableHandle handle, String filterText) {
+    private boolean matches(ProcessHandleRepresentative handle, String filterText) {
         Pattern pattern = Pattern.compile(filterText);
-        return pattern.matcher(Optional.ofNullable(handle).map(ExecutableHandle::name).orElse("")).find()
-            || pattern.matcher(Optional.ofNullable(handle).map(ExecutableHandle::path).map(Object::toString).orElse("")).find();
+        return pattern.matcher(Optional.ofNullable(handle).map(ProcessHandleRepresentative::name).orElse("")).find()
+            || pattern.matcher(Optional.ofNullable(handle).map(ProcessHandleRepresentative::name).map(Object::toString).orElse("")).find();
     }
 
     private void applyFilter(String filterText) {
@@ -138,36 +135,28 @@ import static java.util.stream.Collectors.toSet;
             .collect(toList()));
     }
 
-    private void loadProcessTree(TreeItem<ExecutableHandle> root, Collection<ProcessHandle> processHandles) {
-        ExecutableHandle oldSelectedHandle = Optional.ofNullable(processTreeTableView.getSelectionModel().getSelectedItem())
+    private void loadProcessTree(TreeItem<ProcessHandleRepresentative> root, Collection<ProcessHandleRepresentative> processHandles) {
+        ProcessHandleRepresentative oldSelectedHandle = Optional.ofNullable(processTreeTableView.getSelectionModel().getSelectedItem())
             .map(TreeItem::getValue).orElse(null);
 
-        Set<Integer> oldExpandedPIDs = root.getChildren().stream()
-            .filter(TreeItem::isExpanded).map(TreeItem::getValue).map(handle -> ((ProcessHandle) handle).identifier()).collect(toSet());
+        Set<Long> oldExpandedPIDs = root.getChildren().stream()
+            .filter(TreeItem::isExpanded).map(TreeItem::getValue).map(ProcessHandleRepresentative::pid).collect(toSet());
 
         processTreeTableView.getSelectionModel().clearSelection(); // javafx bug
         root.getChildren().clear();
 
-        for (ProcessHandle processHandle : processHandles) {
-            int identifier = processHandle.identifier();
-            TreeItem<ExecutableHandle> processItem = new TreeItem<>(processHandle);
+        for (ProcessHandleRepresentative processHandle : processHandles) {
+            long identifier = processHandle.pid();
+            TreeItem<ProcessHandleRepresentative> processItem = new TreeItem<>(processHandle);
             root.getChildren().add(processItem);
 
             if (oldExpandedPIDs.contains(identifier)) {
                 processItem.setExpanded(true);
             }
 
-            if (oldSelectedHandle instanceof ProcessHandle && ((ProcessHandle) oldSelectedHandle).identifier() == processHandle.identifier()) {
-                processTreeTableView.getSelectionModel().select(processItem);
-            }
-
-            for (ProcessModuleHandle processModuleHandle : processHandle.modules()) {
-                TreeItem<ExecutableHandle> processModuleItem = new TreeItem<>(processModuleHandle);
-                processItem.getChildren().add(processModuleItem);
-                if (oldSelectedHandle instanceof ProcessModuleHandle
-                        && ((ProcessModuleHandle) oldSelectedHandle).parentIdentifier() == processHandle.identifier()
-                        && Objects.equals(oldSelectedHandle.name(), processModuleHandle.name())) {
-                    processTreeTableView.getSelectionModel().select(processModuleItem);
+            if (oldSelectedHandle != null) {
+                if (oldSelectedHandle.pid() == processHandle.pid()) {
+                    processTreeTableView.getSelectionModel().select(processItem);
                 }
             }
         }
@@ -176,10 +165,8 @@ import static java.util.stream.Collectors.toSet;
     }
 
     protected void refreshImpl() {
-        lastLoadedProcessHandles = ProcessRoutines.allAvailableProcesses().stream()
-            .filter(retrievalResult -> retrievalResult.exception() == null)
-            .map(ProcessHandleRetrievalResult::processHandle)
-            .collect(
+        lastLoadedProcessHandles = ProcessHandle.allProcesses()
+            .map(ProcessHandleRepresentative::new).collect(
                 toList());
         applyFilter(filterTextField.getText());
     }
@@ -205,56 +192,61 @@ import static java.util.stream.Collectors.toSet;
     }
 
     @FXML protected void makeFullscreen(ActionEvent event) {
-        TreeItem<ExecutableHandle> selectedItem = processTreeTableView.getSelectionModel().getSelectedItem();
+        boolean allowed = KnownSystemProperties.operationSystemName.get()
+            .filter(name -> name.toLowerCase().contains("windows"))
+            .isPresent();
 
-        List<WindowHandle> windowHandles = WindowRoutines.processWindowHandles(
-            (ProcessHandle) selectedItem.getValue());
+        if (allowed) {
+            TreeItem<ProcessHandleRepresentative> selectedItem = processTreeTableView.getSelectionModel().getSelectedItem();
 
-        if (windowHandles.size() > 1) {
-            fxmlFormOpenEvent.fire(
-                new FXMLResourceOpen(
-                    Pipeliner.of(Stage::new)
-                        .set(target -> target::initOwner, stage)
-                        .set(target -> target::initModality, Modality.APPLICATION_MODAL)
-                        .set(target -> target::setResizable, false)
-                        .get(),
-                    FXMLResources.FXML__SELECTION,
-                    Pipeliner.of((Supplier<Map<String, Object>>) HashMap::new)
-                        .set(map -> value -> map.put("windowHandles", value), windowHandles)
-                        .get()));
-        } else if (windowHandles.size() > 0) {
-            makeFullscreenActionEngage.fire(
-                new ActionEngage<>(windowHandles.get(0)));
+            List<WindowHandle> windowHandles = WindowRoutines.processWindowHandles(
+                selectedItem.getValue().pid());
+
+            if (windowHandles.size() > 1) {
+                fxmlFormOpenEvent.fire(
+                    new FXMLResourceOpen(
+                        Pipeliner.of(Stage::new)
+                            .set(target -> target::initOwner, stage)
+                            .set(target -> target::initModality, Modality.APPLICATION_MODAL)
+                            .set(target -> target::setResizable, false)
+                            .get(),
+                        FXMLResources.FXML__SELECTION,
+                        Pipeliner.of((Supplier<Map<String, Object>>) HashMap::new)
+                            .set(map -> value -> map.put("windowHandles", value), windowHandles)
+                            .get()));
+            } else if (windowHandles.size() > 0) {
+                makeFullscreenActionEngage.fire(
+                    new ActionEngage<>(windowHandles.get(0)));
+            }
+        } else {
+            Pipeliner.of(prepareAlert(() -> new Alert(Alert.AlertType.ERROR)))
+                .set(alert -> alert::setHeaderText, bundle.getString("stage.processList.error.notWindows"))
+                .accept(Alert::show);
         }
     }
 
     @FXML protected void terminate(ActionEvent event) {
-        TreeItem<ExecutableHandle> selectedItem = processTreeTableView.getSelectionModel().getSelectedItem();
+        TreeItem<ProcessHandleRepresentative> selectedItem = processTreeTableView.getSelectionModel().getSelectedItem();
 
-        Alert confirmationAlert = prepareAlert(() -> new Alert(Alert.AlertType.CONFIRMATION, null, ButtonType.YES, ButtonType.NO));
-        confirmationAlert.setHeaderText(bundle.getString("stage.processList.confirmation.terminate"));
-        boolean terminate = confirmationAlert.showAndWait()
+        boolean terminate = Pipeliner.of(prepareAlert(() -> new Alert(Alert.AlertType.CONFIRMATION, null, ButtonType.YES, ButtonType.NO)))
+            .set(alert -> alert::setHeaderText, bundle.getString("stage.processList.confirmation.terminate"))
+            .map(Alert::showAndWait)
+            .get()
             .map(choice -> choice == ButtonType.YES)
             .orElse(false);
 
-        Optional<String> errorMessage = Optional.empty();
-
         try {
             if (terminate) {
-                ProcessHandle processHandle = (ProcessHandle) selectedItem.getValue();
-                processHandle.terminate(0);
+                ProcessHandleRepresentative processHandle = selectedItem.getValue();
+                processHandle.destroyForcibly();
 
                 selectedItem.getParent().getChildren().remove(selectedItem);
             }
-        } catch (Win32Exception thrown) {
-            errorMessage = Optional.ofNullable(String.format(bundle.getString("stage.processList.error.unexpected"), thrown.getMessage()));
+        } catch (Exception thrown) {
+            Pipeliner.of(prepareAlert(() -> new Alert(Alert.AlertType.ERROR)))
+                .set(alert -> alert::setHeaderText, String.format(bundle.getString("stage.processList.error.unexpected"), thrown.getMessage()))
+                .accept(Alert::show);
         }
-
-        errorMessage.ifPresent(message -> {
-            Alert errorAlert = prepareAlert(() -> new Alert(Alert.AlertType.ERROR));
-            errorAlert.setHeaderText(message);
-            errorAlert.show();
-        });
     }
 
 }

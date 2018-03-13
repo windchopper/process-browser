@@ -3,7 +3,6 @@ package com.github.windchopper.tools.process.browser;
 import com.github.windchopper.common.fx.application.fx.annotation.FXMLResource;
 import com.github.windchopper.common.util.KnownSystemProperties;
 import com.github.windchopper.common.util.Pipeliner;
-import com.github.windchopper.tools.process.browser.windows.ProcessRoutines;
 import javafx.beans.binding.Bindings;
 import javafx.event.ActionEvent;
 import javafx.fxml.FXML;
@@ -45,7 +44,7 @@ import java.util.ResourceBundle;
 
     @FXML protected void run(ActionEvent event) {
         try {
-            ProcessRoutines.runProcess(commandTextField.getText(), null, elevateCheckBox.isSelected());
+            new ProcessBuilder(commandTextField.getText());
         } catch (Exception thrown) {
             Alert errorAlert = prepareAlert(() -> new Alert(Alert.AlertType.ERROR));
             errorAlert.setHeaderText(thrown.getMessage());
@@ -64,7 +63,7 @@ import java.util.ResourceBundle;
         okButton.disableProperty().bind(
             Bindings.isEmpty(commandTextField.textProperty()));
         elevateCheckBox.disableProperty().bind(
-            Bindings.createBooleanBinding(ProcessRoutines::currentProcessHasAdministrativeRights).not());
+            Bindings.createBooleanBinding(() -> false).not());
     }
 
 }

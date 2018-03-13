@@ -29,14 +29,12 @@ public class Launcher extends Application implements KnownSystemProperties {
         super.stop();
     }
 
-    @Override public void start(Stage primaryStage) throws Exception {
+    @Override public void start(Stage primaryStage) {
         BeanManager beanManager = weldContainer.getBeanManager();
         beanManager.fireEvent(
             new ResourceBundleLoading(bundle));
         beanManager.fireEvent(
-            new FXMLResourceOpen(primaryStage, operationSystemName.get().map(String::toLowerCase).orElse("unknown").contains("windows")
-                ? FXMLResources.FXML__PROCESS_LIST
-                : FXMLResources.FXML__NOT_WINDOWS));
+            new FXMLResourceOpen(primaryStage, FXMLResources.FXML__PROCESS_LIST));
     }
 
     /*
