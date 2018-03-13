@@ -29,9 +29,10 @@ import java.util.function.Supplier;
 import java.util.regex.Pattern;
 import java.util.stream.Stream;
 
+import static java.util.Arrays.binarySearch;
 import static java.util.Collections.emptyMap;
+import static java.util.Comparator.comparing;
 import static java.util.stream.Collectors.toList;
-import static java.util.stream.Collectors.toSet;
 
 @ApplicationScoped @FXMLResource(FXMLResources.FXML__PROCESS_LIST) public class ProcessListStageController
     extends AnyStageController implements PreferencesAware {
@@ -79,12 +80,11 @@ import static java.util.stream.Collectors.toSet;
 
         TreeItem<ProcessHandleRepresentative> processTreeRoot = new TreeItem<>(null);
         processTreeRoot.setExpanded(true);
-
-        loadProcessTree(processTreeRoot, lastLoadedProcessHandles = ProcessHandle.allProcesses()
-            .map(ProcessHandleRepresentative::new).collect(
-                toList()));
-
         processTreeTableView.setRoot(processTreeRoot);
+
+        loadProcessTree(lastLoadedProcessHandles = ProcessHandle.allProcesses()
+            .map(ProcessHandleRepresentative::new).sorted(comparing(ProcessHandleRepresentative::pid)).collect(
+                toList()));
 
         BooleanBinding selectionIsProcessHandle = Bindings.createBooleanBinding(
             () -> Optional.ofNullable(processTreeTableView.getSelectionModel().getSelectedItem())
@@ -130,36 +130,52 @@ import static java.util.stream.Collectors.toSet;
 
     private void applyFilter(String filterText) {
         filterTextPreferencesEntry.accept(filterText);
-        loadProcessTree(processTreeTableView.getRoot(), lastLoadedProcessHandles.stream()
+        loadProcessTree(lastLoadedProcessHandles.stream()
             .filter(handle -> matches(handle, filterText))
+            .sorted(comparing(ProcessHandleRepresentative::pid))
             .collect(toList()));
     }
 
-    private void loadProcessTree(TreeItem<ProcessHandleRepresentative> root, Collection<ProcessHandleRepresentative> processHandles) {
-        ProcessHandleRepresentative oldSelectedHandle = Optional.ofNullable(processTreeTableView.getSelectionModel().getSelectedItem())
-            .map(TreeItem::getValue).orElse(null);
+    private TreeItem<ProcessHandleRepresentative> makeItem(long[] expandedPids, ProcessHandleRepresentative handle) {
+        return Pipeliner.of(TreeItem<ProcessHandleRepresentative>::new)
+            .set(item -> item::setExpanded, binarySearch(expandedPids, handle.pid()) >= 0)
+            .set(item -> item::setValue, handle)
+            .get();
+    }
 
-        Set<Long> oldExpandedPIDs = root.getChildren().stream()
-            .filter(TreeItem::isExpanded).map(TreeItem::getValue).map(ProcessHandleRepresentative::pid).collect(toSet());
+    private void loadProcessTree(Collection<ProcessHandleRepresentative> processHandles) {
+        long[] selectedPids = processTreeTableView.getSelectionModel().getSelectedItems().stream()
+            .map(TreeItem::getValue).mapToLong(ProcessHandleRepresentative::pid).toArray();
+
+        long[] expandedPids = processTreeTableView.getRoot().getChildren().stream()
+            .filter(TreeItem::isExpanded).map(TreeItem::getValue).mapToLong(ProcessHandleRepresentative::pid).toArray();
 
         processTreeTableView.getSelectionModel().clearSelection(); // javafx bug
-        root.getChildren().clear();
+        processTreeTableView.getRoot().getChildren().clear();
 
-        for (ProcessHandleRepresentative processHandle : processHandles) {
-            long identifier = processHandle.pid();
-            TreeItem<ProcessHandleRepresentative> processItem = new TreeItem<>(processHandle);
-            root.getChildren().add(processItem);
+        List<TreeItem<ProcessHandleRepresentative>> items = processHandles.stream()
+            .map(handle -> makeItem(expandedPids, handle))
+            .collect(toList());
 
-            if (oldExpandedPIDs.contains(identifier)) {
-                processItem.setExpanded(true);
-            }
+        items.stream()
+            .filter(item -> item.getValue().parendPid() < 0L)
+            .forEach(item -> {
+                processTreeTableView.getRoot().getChildren().add(item);
 
-            if (oldSelectedHandle != null) {
-                if (oldSelectedHandle.pid() == processHandle.pid()) {
-                    processTreeTableView.getSelectionModel().select(processItem);
+                if (binarySearch(selectedPids, item.getValue().pid()) >= 0) {
+                    processTreeTableView.getSelectionModel().select(item);
                 }
-            }
-        }
+
+                items.stream()
+                    .filter(childItem -> childItem.getValue().parendPid() == item.getValue().pid())
+                    .forEach(childItem -> {
+                        item.getChildren().add(childItem);
+
+                        if (binarySearch(selectedPids, childItem.getValue().pid()) >= 0) {
+                            processTreeTableView.getSelectionModel().select(childItem);
+                        }
+                    });
+            });
 
         processTreeTableView.sort();
     }
