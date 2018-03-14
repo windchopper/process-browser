@@ -26,7 +26,9 @@ import javax.inject.Inject;
 import java.time.Duration;
 import java.util.*;
 import java.util.function.Supplier;
+import java.util.logging.Level;
 import java.util.regex.Pattern;
+import java.util.regex.PatternSyntaxException;
 import java.util.stream.Stream;
 
 import static java.util.Arrays.binarySearch;
@@ -61,14 +63,14 @@ import static java.util.stream.Collectors.toList;
     @Inject protected Event<FXMLResourceOpen> fxmlFormOpenEvent;
     @Inject @Action("makeFullscreen") protected Event<ActionEngage<WindowHandle>> makeFullscreenActionEngage;
 
-    @FXML protected TableView<ProcessHandleRepresentative> processTableView;
+    @FXML protected TableView<ProcessInfo> processTableView;
     @FXML protected TextField filterTextField;
     @FXML protected MenuItem refreshMenuItem;
     @FXML protected MenuItem makeFullscreenMenuItem;
     @FXML protected MenuItem terminateMenuItem;
     @FXML protected CheckMenuItem toggleAutoRefreshMenuItem;
 
-    private List<ProcessHandleRepresentative> lastLoadedProcessHandles;
+    private List<ProcessInfo> processList;
 
     @Override protected void start(Stage stage, String fxmlResource, Map<String, ?> parameters) {
         super.start(
@@ -78,9 +80,7 @@ import static java.util.stream.Collectors.toList;
             fxmlResource,
             parameters);
 
-        loadProcessTree(lastLoadedProcessHandles = ProcessHandle.allProcesses()
-            .map(ProcessHandleRepresentative::new).sorted(comparing(ProcessHandleRepresentative::pid)).collect(
-                toList()));
+        loadProcessTree(processList = loadProcessList());
 
         BooleanBinding selectionIsProcessHandle = Bindings.isNotNull(
             processTableView.getSelectionModel().selectedItemProperty());
@@ -115,23 +115,32 @@ import static java.util.stream.Collectors.toList;
         applyFilter(newValue);
     }
 
-    private boolean matches(ProcessHandleRepresentative handle, String filterText) {
-        Pattern pattern = Pattern.compile(filterText);
-        return pattern.matcher(Optional.ofNullable(handle).map(ProcessHandleRepresentative::name).orElse("")).find()
-            || pattern.matcher(Optional.ofNullable(handle).map(ProcessHandleRepresentative::name).map(Object::toString).orElse("")).find();
+    private boolean matches(ProcessInfo handle, String filterText) {
+        try {
+            return Pipeliner.of(filterText)
+                .map(Pattern::compile)
+                .map(pattern -> pattern.matcher(handle.name()).find() || pattern.matcher(handle.command()).find())
+                .get();
+        } catch (PatternSyntaxException thrown) {
+            if (logger.isLoggable(Level.FINER)) {
+                logger.log(Level.FINER, thrown.getMessage(), thrown);
+            }
+
+            return false;
+        }
     }
 
     private void applyFilter(String filterText) {
         filterTextPreferencesEntry.accept(filterText);
-        loadProcessTree(lastLoadedProcessHandles.stream()
+        loadProcessTree(processList.stream()
             .filter(handle -> matches(handle, filterText))
-            .sorted(comparing(ProcessHandleRepresentative::pid))
+            .sorted(comparing(ProcessInfo::pid))
             .collect(toList()));
     }
 
-    private void loadProcessTree(Collection<ProcessHandleRepresentative> processHandles) {
+    private void loadProcessTree(Collection<ProcessInfo> processHandles) {
         long[] selectedPids = processTableView.getSelectionModel().getSelectedItems().stream()
-            .mapToLong(ProcessHandleRepresentative::pid).toArray();
+            .mapToLong(ProcessInfo::pid).toArray();
 
         processTableView.getSelectionModel().clearSelection(); // javafx bug
         processTableView.getItems().clear();
@@ -145,10 +154,14 @@ import static java.util.stream.Collectors.toList;
         });
     }
 
-    protected void refreshImpl() {
-        lastLoadedProcessHandles = ProcessHandle.allProcesses()
-            .map(ProcessHandleRepresentative::new).collect(
+    private List<ProcessInfo> loadProcessList() {
+        return ProcessHandle.allProcesses()
+            .filter(handle -> handle.info().command().isPresent()).map(ProcessInfo::new).collect(
                 toList());
+    }
+
+    protected void refreshImpl() {
+        processList = loadProcessList();
         applyFilter(filterTextField.getText());
     }
 
@@ -178,7 +191,7 @@ import static java.util.stream.Collectors.toList;
             .isPresent();
 
         if (allowed) {
-            ProcessHandleRepresentative selectedItem = processTableView.getSelectionModel().getSelectedItem();
+            ProcessInfo selectedItem = processTableView.getSelectionModel().getSelectedItem();
 
             List<WindowHandle> windowHandles = WindowRoutines.processWindowHandles(
                 selectedItem.pid());
@@ -207,7 +220,7 @@ import static java.util.stream.Collectors.toList;
     }
 
     @FXML protected void terminate(ActionEvent event) {
-        ProcessHandleRepresentative selectedItem = processTableView.getSelectionModel().getSelectedItem();
+        ProcessInfo selectedItem = processTableView.getSelectionModel().getSelectedItem();
 
         boolean terminate = Pipeliner.of(prepareAlert(() -> new Alert(Alert.AlertType.CONFIRMATION, null, ButtonType.YES, ButtonType.NO)))
             .set(alert -> alert::setHeaderText, bundle.getString("stage.processList.confirmation.terminate"))
