@@ -17,32 +17,37 @@
     </padding>
     <center>
         <fx:define>
-            <ProcessHandleRendererBuilder fx:id="cellFactory" fx:factory="treeTableCellFactory"/>
-            <ProcessHandleRendererBuilder fx:id="cellValueFactory" fx:factory="treeTableCellValueFactory"/>
+            <ProcessHandleRendererBuilder fx:id="cellFactory" fx:factory="tableCellFactory"/>
+            <ProcessHandleRendererBuilder fx:id="cellValueFactory" fx:factory="tableCellValueFactory"/>
         </fx:define>
-        <TreeTableView fx:id="processTreeTableView" prefHeight="200.0" prefWidth="200.0" showRoot="false" BorderPane.alignment="CENTER">
+        <TableView fx:id="processTableView" prefHeight="200.0" prefWidth="200.0" BorderPane.alignment="CENTER">
             <columns>
-                <TreeTableColumn fx:id="identifierColumn" maxWidth="10000.0" minWidth="50.0" prefWidth="50.0" text="%stage.processList.table.column.identifier">
+                <TableColumn fx:id="identifierColumn" maxWidth="10000.0" minWidth="50.0" prefWidth="50.0" text="%stage.processList.table.column.identifier">
                     <cellValueFactory>
                         <fx:reference source="cellValueFactory"/>
                     </cellValueFactory>
-                </TreeTableColumn>
-                <TreeTableColumn fx:id="nameColumn" maxWidth="20000.0" minWidth="100.0" prefWidth="100.0" text="%stage.processList.table.column.name">
+                </TableColumn>
+                <TableColumn fx:id="parentIdentifierColumn" maxWidth="10000.0" minWidth="50.0" prefWidth="50.0" text="%stage.processList.table.column.parentIdentifier">
+                    <cellValueFactory>
+                        <fx:reference source="cellValueFactory"/>
+                    </cellValueFactory>
+                </TableColumn>
+                <TableColumn fx:id="nameColumn" maxWidth="20000.0" minWidth="100.0" prefWidth="100.0" text="%stage.processList.table.column.name">
                     <cellFactory>
                         <fx:reference source="cellFactory"/>
                     </cellFactory>
                     <cellValueFactory>
                         <fx:reference source="cellValueFactory"/>
                     </cellValueFactory>
-                </TreeTableColumn>
-                <TreeTableColumn fx:id="executablePathColumn" maxWidth="70000.0" minWidth="200.0" prefWidth="200.0" text="%stage.processList.table.column.executablePath">
+                </TableColumn>
+                <TableColumn fx:id="executablePathColumn" maxWidth="70000.0" minWidth="200.0" prefWidth="200.0" text="%stage.processList.table.column.executablePath">
                     <cellFactory>
                         <fx:reference source="cellFactory"/>
                     </cellFactory>
                     <cellValueFactory>
                         <fx:reference source="cellValueFactory"/>
                     </cellValueFactory>
-                </TreeTableColumn>
+                </TableColumn>
             </columns>
             <contextMenu>
                 <ContextMenu>
@@ -58,8 +63,8 @@
                 </ContextMenu>
             </contextMenu>
             <columnResizePolicy>
-                <TreeTableView fx:constant="CONSTRAINED_RESIZE_POLICY"/>
+                <TableView fx:constant="CONSTRAINED_RESIZE_POLICY"/>
             </columnResizePolicy>
-        </TreeTableView>
+        </TableView>
     </center>
 </BorderPane>

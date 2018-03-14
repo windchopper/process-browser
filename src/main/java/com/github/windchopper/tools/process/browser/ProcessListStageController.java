@@ -61,7 +61,7 @@ import static java.util.stream.Collectors.toList;
     @Inject protected Event<FXMLResourceOpen> fxmlFormOpenEvent;
     @Inject @Action("makeFullscreen") protected Event<ActionEngage<WindowHandle>> makeFullscreenActionEngage;
 
-    @FXML protected TreeTableView<ProcessHandleRepresentative> processTreeTableView;
+    @FXML protected TableView<ProcessHandleRepresentative> processTableView;
     @FXML protected TextField filterTextField;
     @FXML protected MenuItem refreshMenuItem;
     @FXML protected MenuItem makeFullscreenMenuItem;
@@ -78,19 +78,12 @@ import static java.util.stream.Collectors.toList;
             fxmlResource,
             parameters);
 
-        TreeItem<ProcessHandleRepresentative> processTreeRoot = new TreeItem<>(null);
-        processTreeRoot.setExpanded(true);
-        processTreeTableView.setRoot(processTreeRoot);
-
         loadProcessTree(lastLoadedProcessHandles = ProcessHandle.allProcesses()
             .map(ProcessHandleRepresentative::new).sorted(comparing(ProcessHandleRepresentative::pid)).collect(
                 toList()));
 
-        BooleanBinding selectionIsProcessHandle = Bindings.createBooleanBinding(
-            () -> Optional.ofNullable(processTreeTableView.getSelectionModel().getSelectedItem())
-                .map(TreeItem::getValue)
-                .isPresent(),
-            processTreeTableView.getSelectionModel().selectedItemProperty());
+        BooleanBinding selectionIsProcessHandle = Bindings.isNotNull(
+            processTableView.getSelectionModel().selectedItemProperty());
         Stream.of(makeFullscreenMenuItem, terminateMenuItem).forEach(
             menuItem -> menuItem.disableProperty().bind(selectionIsProcessHandle.not()));
 
@@ -101,7 +94,7 @@ import static java.util.stream.Collectors.toList;
             filterTextField.setText(filterText);
             filterTextField.requestFocus();
         } else {
-            processTreeTableView.requestFocus();
+            processTableView.requestFocus();
         }
 
         filterTextField.textProperty().addListener(this::filterTextChanged);
@@ -118,7 +111,7 @@ import static java.util.stream.Collectors.toList;
             .get();
     }
 
-    private void filterTextChanged(ObservableValue<? extends String> property, String oldValue, String newValue) {
+    private void filterTextChanged(@SuppressWarnings("unused") ObservableValue<? extends String> property, @SuppressWarnings("unused") String oldValue, String newValue) {
         applyFilter(newValue);
     }
 
@@ -136,48 +129,20 @@ import static java.util.stream.Collectors.toList;
             .collect(toList()));
     }
 
-    private TreeItem<ProcessHandleRepresentative> makeItem(long[] expandedPids, ProcessHandleRepresentative handle) {
-        return Pipeliner.of(TreeItem<ProcessHandleRepresentative>::new)
-            .set(item -> item::setExpanded, binarySearch(expandedPids, handle.pid()) >= 0)
-            .set(item -> item::setValue, handle)
-            .get();
-    }
-
     private void loadProcessTree(Collection<ProcessHandleRepresentative> processHandles) {
-        long[] selectedPids = processTreeTableView.getSelectionModel().getSelectedItems().stream()
-            .map(TreeItem::getValue).mapToLong(ProcessHandleRepresentative::pid).toArray();
+        long[] selectedPids = processTableView.getSelectionModel().getSelectedItems().stream()
+            .mapToLong(ProcessHandleRepresentative::pid).toArray();
 
-        long[] expandedPids = processTreeTableView.getRoot().getChildren().stream()
-            .filter(TreeItem::isExpanded).map(TreeItem::getValue).mapToLong(ProcessHandleRepresentative::pid).toArray();
+        processTableView.getSelectionModel().clearSelection(); // javafx bug
+        processTableView.getItems().clear();
+        processTableView.getItems().addAll(processHandles);
+        processTableView.sort();
 
-        processTreeTableView.getSelectionModel().clearSelection(); // javafx bug
-        processTreeTableView.getRoot().getChildren().clear();
-
-        List<TreeItem<ProcessHandleRepresentative>> items = processHandles.stream()
-            .map(handle -> makeItem(expandedPids, handle))
-            .collect(toList());
-
-        items.stream()
-            .filter(item -> item.getValue().parendPid() < 0L)
-            .forEach(item -> {
-                processTreeTableView.getRoot().getChildren().add(item);
-
-                if (binarySearch(selectedPids, item.getValue().pid()) >= 0) {
-                    processTreeTableView.getSelectionModel().select(item);
-                }
-
-                items.stream()
-                    .filter(childItem -> childItem.getValue().parendPid() == item.getValue().pid())
-                    .forEach(childItem -> {
-                        item.getChildren().add(childItem);
-
-                        if (binarySearch(selectedPids, childItem.getValue().pid()) >= 0) {
-                            processTreeTableView.getSelectionModel().select(childItem);
-                        }
-                    });
-            });
-
-        processTreeTableView.sort();
+        processHandles.forEach(handle -> {
+            if (binarySearch(selectedPids, handle.pid()) >= 0) {
+                processTableView.getSelectionModel().select(handle);
+            }
+        });
     }
 
     protected void refreshImpl() {
@@ -213,10 +178,10 @@ import static java.util.stream.Collectors.toList;
             .isPresent();
 
         if (allowed) {
-            TreeItem<ProcessHandleRepresentative> selectedItem = processTreeTableView.getSelectionModel().getSelectedItem();
+            ProcessHandleRepresentative selectedItem = processTableView.getSelectionModel().getSelectedItem();
 
             List<WindowHandle> windowHandles = WindowRoutines.processWindowHandles(
-                selectedItem.getValue().pid());
+                selectedItem.pid());
 
             if (windowHandles.size() > 1) {
                 fxmlFormOpenEvent.fire(
@@ -242,7 +207,7 @@ import static java.util.stream.Collectors.toList;
     }
 
     @FXML protected void terminate(ActionEvent event) {
-        TreeItem<ProcessHandleRepresentative> selectedItem = processTreeTableView.getSelectionModel().getSelectedItem();
+        ProcessHandleRepresentative selectedItem = processTableView.getSelectionModel().getSelectedItem();
 
         boolean terminate = Pipeliner.of(prepareAlert(() -> new Alert(Alert.AlertType.CONFIRMATION, null, ButtonType.YES, ButtonType.NO)))
             .set(alert -> alert::setHeaderText, bundle.getString("stage.processList.confirmation.terminate"))
@@ -253,10 +218,8 @@ import static java.util.stream.Collectors.toList;
 
         try {
             if (terminate) {
-                ProcessHandleRepresentative processHandle = selectedItem.getValue();
-                processHandle.destroyForcibly();
-
-                selectedItem.getParent().getChildren().remove(selectedItem);
+                selectedItem.destroyForcibly();
+                processTableView.getItems().remove(selectedItem);
             }
         } catch (Exception thrown) {
             Pipeliner.of(prepareAlert(() -> new Alert(Alert.AlertType.ERROR)))
