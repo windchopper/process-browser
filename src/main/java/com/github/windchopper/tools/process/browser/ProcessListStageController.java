@@ -1,9 +1,9 @@
 package com.github.windchopper.tools.process.browser;
 
-import com.github.windchopper.common.fx.application.annotation.Action;
-import com.github.windchopper.common.fx.application.fx.annotation.FXMLResource;
-import com.github.windchopper.common.fx.application.fx.event.ActionEngage;
-import com.github.windchopper.common.fx.application.fx.event.FXMLResourceOpen;
+import com.github.windchopper.common.fx.annotation.Action;
+import com.github.windchopper.common.fx.annotation.FXMLResource;
+import com.github.windchopper.common.fx.event.ActionEngage;
+import com.github.windchopper.common.fx.event.FXMLResourceOpen;
 import com.github.windchopper.common.util.KnownSystemProperties;
 import com.github.windchopper.common.util.Pipeliner;
 import com.github.windchopper.tools.process.browser.jna.WindowHandle;

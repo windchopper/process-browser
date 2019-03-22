@@ -1,6 +1,6 @@
 package com.github.windchopper.tools.process.browser;
 
-import com.github.windchopper.common.fx.application.fx.StageController;
+import com.github.windchopper.common.fx.application.StageController;
 import com.github.windchopper.common.util.Pipeliner;
 import javafx.scene.control.Alert;
 import javafx.scene.image.Image;

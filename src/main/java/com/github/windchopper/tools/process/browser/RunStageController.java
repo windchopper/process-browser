@@ -1,6 +1,6 @@
 package com.github.windchopper.tools.process.browser;
 
-import com.github.windchopper.common.fx.application.fx.annotation.FXMLResource;
+import com.github.windchopper.common.fx.annotation.FXMLResource;
 import com.github.windchopper.common.util.KnownSystemProperties;
 import com.github.windchopper.common.util.Pipeliner;
 import javafx.beans.binding.Bindings;

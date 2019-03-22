@@ -1,7 +1,7 @@
 package com.github.windchopper.tools.process.browser;
 
-import com.github.windchopper.common.fx.application.event.ResourceBundleLoading;
-import com.github.windchopper.common.fx.application.fx.event.FXMLResourceOpen;
+import com.github.windchopper.common.fx.event.FXMLResourceOpen;
+import com.github.windchopper.common.fx.event.ResourceBundleLoading;
 import com.github.windchopper.common.util.KnownSystemProperties;
 import javafx.application.Application;
 import javafx.stage.Stage;
