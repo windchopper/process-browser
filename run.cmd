@@ -1,2 +1,1 @@
-@rem -agentlib:jdwp=transport=dt_socket,server=y,suspend=y,address=*:5005
-@C:\jdk-11.0.2\bin\java.exe -p target\classes;target\lib -m windchopper.tools.process.browser/com.github.windchopper.tools.process.browser.Launcher
+@C:\jdk-11.0.2\bin\java.exe -p target\classes;target\lib -agentlib:jdwp=transport=dt_socket,server=y,suspend=n,address=*:5005 -m windchopper.tools.process.browser/com.github.windchopper.tools.process.browser.Launcher

@@ -44,7 +44,8 @@ import java.util.ResourceBundle;
 
     @FXML protected void run(ActionEvent event) {
         try {
-            new ProcessBuilder(commandTextField.getText());
+            new ProcessBuilder(commandTextField.getText())
+                .start();
         } catch (Exception thrown) {
             Alert errorAlert = prepareAlert(() -> new Alert(Alert.AlertType.ERROR));
             errorAlert.setHeaderText(thrown.getMessage());
