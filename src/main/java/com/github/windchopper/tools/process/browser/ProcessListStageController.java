@@ -10,7 +10,6 @@ import com.github.windchopper.tools.process.browser.jna.WindowHandle;
 import com.github.windchopper.tools.process.browser.jna.WindowRoutines;
 import javafx.application.Platform;
 import javafx.beans.binding.Bindings;
-import javafx.beans.binding.BooleanBinding;
 import javafx.beans.value.ObservableValue;
 import javafx.event.ActionEvent;
 import javafx.fxml.FXML;
@@ -48,11 +47,11 @@ import static java.util.stream.Collectors.toList;
         }
 
         @Override public void run() {
-            while (true) {
+            while (Thread.interrupted()) {
                 try {
                     Thread.sleep(Duration.ofSeconds(5).toMillis());
                     if (toggleAutoRefreshMenuItem.isSelected()) Platform.runLater(ProcessListStageController.this::refreshImpl);
-                } catch (InterruptedException thrown) {
+                } catch (InterruptedException ignored) {
                     break;
                 }
             }
@@ -82,12 +81,12 @@ import static java.util.stream.Collectors.toList;
 
         loadProcessTree(processList = loadProcessList());
 
-        BooleanBinding selectionIsProcessHandle = Bindings.isNotNull(
+        var selectionIsProcessHandle = Bindings.isNotNull(
             processTableView.getSelectionModel().selectedItemProperty());
         Stream.of(makeFullscreenMenuItem, terminateMenuItem).forEach(
             menuItem -> menuItem.disableProperty().bind(selectionIsProcessHandle.not()));
 
-        String filterText = filterTextPreferencesEntry.get();
+        var filterText = filterTextPreferencesEntry.get();
 
         if (filterText != null && filterText.trim().length() > 0) {
             applyFilter(filterText);
@@ -139,7 +138,7 @@ import static java.util.stream.Collectors.toList;
     }
 
     private void loadProcessTree(Collection<ProcessInfo> processHandles) {
-        long[] selectedPids = processTableView.getSelectionModel().getSelectedItems().stream()
+        var selectedPids = processTableView.getSelectionModel().getSelectedItems().stream()
             .mapToLong(ProcessInfo::pid).toArray();
 
         processTableView.getSelectionModel().clearSelection(); // javafx bug
@@ -186,7 +185,7 @@ import static java.util.stream.Collectors.toList;
     }
 
     @FXML protected void makeFullscreen(ActionEvent event) {
-        boolean allowed = KnownSystemProperties.operationSystemName.get()
+        var allowed = KnownSystemProperties.operationSystemName.get()
             .filter(name -> name.toLowerCase().contains("windows"))
             .isPresent();
 
@@ -220,7 +219,7 @@ import static java.util.stream.Collectors.toList;
     }
 
     @FXML protected void terminate(ActionEvent event) {
-        ProcessInfo selectedItem = processTableView.getSelectionModel().getSelectedItem();
+        var selectedItem = processTableView.getSelectionModel().getSelectedItem();
 
         boolean terminate = Pipeliner.of(prepareAlert(() -> new Alert(Alert.AlertType.CONFIRMATION, null, ButtonType.YES, ButtonType.NO)))
             .set(alert -> alert::setHeaderText, bundle.getString("stage.processList.confirmation.terminate"))

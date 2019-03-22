@@ -54,7 +54,7 @@ import java.util.ResourceBundle;
 
     @Override protected void start(Stage stage, String fxmlResource, Map<String, ?> parameters) {
         super.start(
-            Pipeliner.of(() -> stage)
+            Pipeliner.of(stage)
                 .set(target -> target::setTitle, bundle.getString("stage.run.title"))
                 .get(),
             fxmlResource,

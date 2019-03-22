@@ -9,6 +9,8 @@ import java.io.File;
 import java.time.Duration;
 import java.util.prefs.Preferences;
 
+import static java.util.function.Function.identity;
+
 public interface PreferencesAware {
 
     Duration defaultBufferLifetime = Duration.ofMinutes(1);
@@ -20,7 +22,7 @@ public interface PreferencesAware {
     String PREFERENCES_ENTRY_NAME__AUTO_REFRESH = "autoRefresh";
 
     PreferencesEntry<String> filterTextPreferencesEntry = new PreferencesEntry<>(
-        preferencesStorage, PREFERENCES_ENTRY_NAME__FILTER_TEXT, new FlatType<>(string -> string, string -> string), defaultBufferLifetime);
+        preferencesStorage, PREFERENCES_ENTRY_NAME__FILTER_TEXT, new FlatType<>(identity(), identity()), defaultBufferLifetime);
 
     PreferencesEntry<File> browseInitialDirectoryPreferencesEntry = new PreferencesEntry<>(
         preferencesStorage, PREFERENCES_ENTRY_NAME__BROWSE_INITIAL_DIRECTORY, new FlatType<>(File::new, File::getAbsolutePath), defaultBufferLifetime);

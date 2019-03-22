@@ -8,7 +8,6 @@ import javafx.stage.Stage;
 import org.jboss.weld.environment.se.Weld;
 import org.jboss.weld.environment.se.WeldContainer;
 
-import javax.enterprise.inject.spi.BeanManager;
 import java.util.ResourceBundle;
 
 public class Launcher extends Application implements KnownSystemProperties {
@@ -30,7 +29,7 @@ public class Launcher extends Application implements KnownSystemProperties {
     }
 
     @Override public void start(Stage primaryStage) {
-        BeanManager beanManager = weldContainer.getBeanManager();
+        var beanManager = weldContainer.getBeanManager();
         beanManager.fireEvent(
             new ResourceBundleLoading(bundle));
         beanManager.fireEvent(

@@ -1,10 +1,10 @@
 package com.github.windchopper.tools.process.browser.jna;
 
+import com.github.windchopper.common.fx.CellFactory;
 import com.sun.jna.platform.win32.WinDef;
 import javafx.scene.control.ListCell;
 import javafx.scene.control.ListView;
 import javafx.util.Callback;
-import com.github.windchopper.common.fx.CellFactory;
 
 import java.util.Optional;
 import java.util.ResourceBundle;
@@ -31,7 +31,7 @@ public class WindowHandle {
         return title;
     }
 
-    @SuppressWarnings("unchecked") public static Callback<ListView<WindowHandle>, ListCell<WindowHandle>> listCellFactory() {
+    public static Callback<ListView<WindowHandle>, ListCell<WindowHandle>> listCellFactory() {
         return CellFactory.listCellFactory(singletonList((cell, item) -> cell.setText(Optional.ofNullable(item)
             .map(WindowHandle::title).orElse(bundle.getString("stage.selection.emptyTitle")))));
     }

@@ -12,7 +12,7 @@ public interface WindowRoutines {
     User32 user = User32.INSTANCE;
 
     static String windowTitle(WinDef.HWND hwnd) {
-        int bufferLength = user.GetWindowTextLength(hwnd);
+        var bufferLength = user.GetWindowTextLength(hwnd);
 
         if (bufferLength > 0) {
             char[] buffer = new char[bufferLength + 1];
@@ -28,7 +28,7 @@ public interface WindowRoutines {
     }
 
     static List<WindowHandle> processWindowHandles(long pid) {
-        List<WindowHandle> windowHandles = new ArrayList<>();
+        var windowHandles = new ArrayList<WindowHandle>();
 
         if (user.EnumWindows((hwnd, pointer) -> {
             if (user.IsWindowVisible(hwnd)) {
@@ -54,12 +54,14 @@ public interface WindowRoutines {
     }
 
     static void applyMonitorSizeToWindow(WindowHandle windowHandle) {
-        WinUser.HMONITOR hMonitor = user.MonitorFromWindow(windowHandle.handle(), User32.MONITOR_DEFAULTTONEAREST);
+        var hMonitor = user.MonitorFromWindow(windowHandle.handle(), User32.MONITOR_DEFAULTTONEAREST);
+
         if (hMonitor == null) {
             throw new Win32Exception(kernel.GetLastError());
         }
 
-        User32.MONITORINFOEX monitorInfo = new WinUser.MONITORINFOEX();
+        var monitorInfo = new WinUser.MONITORINFOEX();
+
         if (user.GetMonitorInfo(hMonitor, monitorInfo).booleanValue()) {
             if (!user.SetWindowPos(
                     windowHandle.handle(),
@@ -77,16 +79,16 @@ public interface WindowRoutines {
     }
 
     static void removeWindowFrame(WindowHandle windowHandle) {
-        int originalWindowStyle = user.GetWindowLong(windowHandle.handle(), User32.GWL_STYLE);
+        var originalWindowStyle = user.GetWindowLong(windowHandle.handle(), User32.GWL_STYLE);
 
         if (originalWindowStyle == 0) {
             throw new Win32Exception(kernel.GetLastError());
         }
 
-        int modifiedWindowStyle = originalWindowStyle & ~(User32.WS_CAPTION | User32.WS_THICKFRAME | User32.WS_MINIMIZE | User32.WS_MAXIMIZE | User32.WS_SYSMENU);
+        var modifiedWindowStyle = originalWindowStyle & ~(User32.WS_CAPTION | User32.WS_THICKFRAME | User32.WS_MINIMIZE | User32.WS_MAXIMIZE | User32.WS_SYSMENU);
 
         if (modifiedWindowStyle != originalWindowStyle) {
-            int previousWindowStyle = user.SetWindowLong(windowHandle.handle(), User32.GWL_STYLE, modifiedWindowStyle);
+            var previousWindowStyle = user.SetWindowLong(windowHandle.handle(), User32.GWL_STYLE, modifiedWindowStyle);
 
             if (previousWindowStyle == 0) {
                 throw new Win32Exception(kernel.GetLastError());

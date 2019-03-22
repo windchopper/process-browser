@@ -16,13 +16,13 @@ import static java.util.Collections.singletonList;
 public class ProcessInfo {
 
     private final long pid;
-    private final long parendPid;
+    private final long parentPid;
     private final String name;
     private final String command;
 
     public ProcessInfo(ProcessHandle processHandle) {
         pid = processHandle.pid();
-        parendPid = processHandle.parent()
+        parentPid = processHandle.parent()
             .map(ProcessHandle::pid)
             .orElse(-1L);
         name = processHandle.info().command()
@@ -39,7 +39,7 @@ public class ProcessInfo {
     }
 
     public long parendPid() {
-        return parendPid;
+        return parentPid;
     }
 
     public String name() {

@@ -74,7 +74,7 @@ import java.util.ResourceBundle;
             stage.hide();
         }
 
-        WindowHandle windowHandle = actionEngage.target();
+        var windowHandle = actionEngage.target();
 
         try {
             WindowRoutines.removeWindowFrame(windowHandle);

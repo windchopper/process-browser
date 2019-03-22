@@ -17,7 +17,7 @@ public abstract class AnyStageController extends StageController {
 
     @Override protected void start(Stage stage, String fxmlResource, Map<String, ?> parameters) {
         super.start(
-            Pipeliner.of(() -> stage)
+            Pipeliner.of(stage)
                 .add(target -> target::getIcons, singletonList(iconImage))
                 .get(),
             fxmlResource,
@@ -25,7 +25,7 @@ public abstract class AnyStageController extends StageController {
     }
 
     @Override protected Alert prepareAlert(Supplier<Alert> constructor) {
-        return Pipeliner.of(() -> super.prepareAlert(constructor))
+        return Pipeliner.of(super.prepareAlert(constructor))
             .accept(alert -> ((Stage) alert.getDialogPane().getScene().getWindow()).getIcons().add(iconImage))
             .get();
     }
