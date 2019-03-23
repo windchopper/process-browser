@@ -47,7 +47,7 @@ import static java.util.stream.Collectors.toList;
         }
 
         @Override public void run() {
-            while (Thread.interrupted()) {
+            while (!Thread.interrupted()) {
                 try {
                     Thread.sleep(Duration.ofSeconds(5).toMillis());
                     if (toggleAutoRefreshMenuItem.isSelected()) Platform.runLater(ProcessListStageController.this::refreshImpl);
