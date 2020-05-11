@@ -24,17 +24,17 @@
         </fx:define>
         <TableView fx:id="processTableView" prefHeight="200.0" prefWidth="200.0" BorderPane.alignment="CENTER">
             <columns>
-                <TableColumn fx:id="identifierColumn" maxWidth="10000.0" minWidth="50.0" prefWidth="50.0" text="%stage.processList.table.column.identifier">
+                <TableColumn id="identifierColumn" maxWidth="10000.0" minWidth="50.0" prefWidth="50.0" text="%stage.processList.table.column.identifier">
                     <cellValueFactory>
                         <fx:reference source="cellValueFactory"/>
                     </cellValueFactory>
                 </TableColumn>
-                <TableColumn fx:id="parentIdentifierColumn" maxWidth="10000.0" minWidth="50.0" prefWidth="50.0" text="%stage.processList.table.column.parentIdentifier">
+                <TableColumn id="parentIdentifierColumn" maxWidth="10000.0" minWidth="50.0" prefWidth="50.0" text="%stage.processList.table.column.parentIdentifier">
                     <cellValueFactory>
                         <fx:reference source="cellValueFactory"/>
                     </cellValueFactory>
                 </TableColumn>
-                <TableColumn fx:id="nameColumn" maxWidth="20000.0" minWidth="100.0" prefWidth="100.0" text="%stage.processList.table.column.name">
+                <TableColumn id="nameColumn" maxWidth="20000.0" minWidth="100.0" prefWidth="100.0" text="%stage.processList.table.column.name">
                     <cellFactory>
                         <fx:reference source="cellFactory"/>
                     </cellFactory>
@@ -42,7 +42,7 @@
                         <fx:reference source="cellValueFactory"/>
                     </cellValueFactory>
                 </TableColumn>
-                <TableColumn fx:id="executablePathColumn" maxWidth="70000.0" minWidth="200.0" prefWidth="200.0" text="%stage.processList.table.column.executablePath">
+                <TableColumn id="executablePathColumn" maxWidth="70000.0" minWidth="200.0" prefWidth="200.0" text="%stage.processList.table.column.executablePath">
                     <cellFactory>
                         <fx:reference source="cellFactory"/>
                     </cellFactory>
