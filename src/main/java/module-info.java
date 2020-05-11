@@ -7,12 +7,11 @@ module windchopper.tools.process.browser {
     requires java.prefs;
     requires java.logging;
 
-    requires javax.inject;
-
     requires javafx.controls;
     requires javafx.fxml;
 
-    requires cdi.api;
+    requires jakarta.inject.api;
+    requires jakarta.enterprise.cdi.api;
 
     requires com.sun.jna;
     requires com.sun.jna.platform;
@@ -21,6 +20,10 @@ module windchopper.tools.process.browser {
     requires weld.environment.common;
     requires weld.core.impl;
 
-    requires windchopper.common;
+    requires windchopper.common.fx;
+    requires windchopper.common.fx.cdi;
+    requires windchopper.common.cdi;
+    requires windchopper.common.preferences;
+    requires windchopper.common.util;
 
 }

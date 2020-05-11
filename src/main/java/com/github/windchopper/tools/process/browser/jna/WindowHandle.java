@@ -1,6 +1,6 @@
 package com.github.windchopper.tools.process.browser.jna;
 
-import com.github.windchopper.common.fx.CellFactory;
+import com.github.windchopper.common.fx.CellFactories;
 import com.sun.jna.platform.win32.WinDef;
 import javafx.scene.control.ListCell;
 import javafx.scene.control.ListView;
@@ -8,8 +8,6 @@ import javafx.util.Callback;
 
 import java.util.Optional;
 import java.util.ResourceBundle;
-
-import static java.util.Collections.singletonList;
 
 public class WindowHandle {
 
@@ -32,8 +30,9 @@ public class WindowHandle {
     }
 
     public static Callback<ListView<WindowHandle>, ListCell<WindowHandle>> listCellFactory() {
-        return CellFactory.listCellFactory(singletonList((cell, item) -> cell.setText(Optional.ofNullable(item)
-            .map(WindowHandle::title).orElse(bundle.getString("stage.selection.emptyTitle")))));
+        return CellFactories.listCellFactory((cell, item, empty) -> cell.setText(Optional.ofNullable(item)
+            .map(WindowHandle::title)
+            .orElse(bundle.getString("stage.selection.emptyTitle"))));
     }
 
 }

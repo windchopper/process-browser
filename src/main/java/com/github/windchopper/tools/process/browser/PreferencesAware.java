@@ -27,7 +27,7 @@ public interface PreferencesAware {
     PreferencesEntry<File> browseInitialDirectoryPreferencesEntry = new PreferencesEntry<>(
         preferencesStorage, PREFERENCES_ENTRY_NAME__BROWSE_INITIAL_DIRECTORY, new FlatType<>(File::new, File::getAbsolutePath), defaultBufferLifetime);
 
-    PreferencesEntry<Boolean> autoRefreshPreferencesEntry = new PreferencesEntry<>(
-        preferencesStorage, PREFERENCES_ENTRY_NAME__AUTO_REFRESH, new FlatType<>(Boolean::parseBoolean, Object::toString), defaultBufferLifetime);
+    PreferencesEntry<Boolean> autoRefreshPreferencesEntry = new PreferencesEntry<Boolean>(
+        preferencesStorage, PREFERENCES_ENTRY_NAME__AUTO_REFRESH, new FlatType<>(Boolean::valueOf, Object::toString), defaultBufferLifetime);
 
 }

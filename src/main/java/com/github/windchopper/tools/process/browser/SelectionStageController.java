@@ -1,8 +1,8 @@
 package com.github.windchopper.tools.process.browser;
 
-import com.github.windchopper.common.fx.annotation.Action;
-import com.github.windchopper.common.fx.annotation.FXMLResource;
-import com.github.windchopper.common.fx.event.ActionEngage;
+import com.github.windchopper.common.fx.cdi.Action;
+import com.github.windchopper.common.fx.cdi.ActionEngage;
+import com.github.windchopper.common.fx.cdi.form.Form;
 import com.github.windchopper.common.util.Pipeliner;
 import com.github.windchopper.tools.process.browser.jna.WindowHandle;
 import com.github.windchopper.tools.process.browser.jna.WindowRoutines;
@@ -11,13 +11,13 @@ import javafx.beans.binding.Bindings;
 import javafx.event.ActionEvent;
 import javafx.fxml.FXML;
 import javafx.geometry.Dimension2D;
+import javafx.scene.Parent;
 import javafx.scene.control.Alert;
 import javafx.scene.control.Button;
 import javafx.scene.control.ListView;
 import javafx.scene.input.MouseButton;
 import javafx.scene.input.MouseEvent;
 import javafx.stage.Screen;
-import javafx.stage.Stage;
 
 import javax.enterprise.context.ApplicationScoped;
 import javax.enterprise.event.Event;
@@ -27,7 +27,7 @@ import java.util.Collection;
 import java.util.Map;
 import java.util.ResourceBundle;
 
-@ApplicationScoped @FXMLResource(FXMLResources.FXML__SELECTION) public class SelectionStageController
+@ApplicationScoped @Form(FXMLResources.FXML__SELECTION) public class SelectionStageController
     extends AnyStageController {
 
     private static final ResourceBundle bundle = ResourceBundle.getBundle("com.github.windchopper.tools.process.browser.i18n.messages");
@@ -43,14 +43,11 @@ import java.util.ResourceBundle;
             .get();
     }
 
-    @Override @SuppressWarnings("unchecked") protected void start(Stage stage, String fxmlResource, Map<String, ?> parameters) {
-        super.start(
-            Pipeliner.of(() -> stage)
-                .set(target -> target::setTitle, bundle.getString("stage.selection.title"))
-                .get(),
-            fxmlResource,
-            parameters);
+    @Override @SuppressWarnings("unchecked") protected void afterLoad(Parent form, Map<String, ?> parameters, Map<String, ?> formNamespace) {
+        super.afterLoad(form, parameters, formNamespace);
 
+        stage.setTitle(
+            bundle.getString("stage.selection.title"));
         selectionListView.getItems().addAll(
             (Collection<? extends WindowHandle>) parameters.get("windowHandles"));
         selectButton.disableProperty().bind(Bindings.isNull(

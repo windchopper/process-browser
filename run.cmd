@@ -1,1 +1,5 @@
-@C:\jdk-11.0.2\bin\java.exe -p target\classes;target\lib -agentlib:jdwp=transport=dt_socket,server=y,suspend=n,address=*:5005 -m windchopper.tools.process.browser/com.github.windchopper.tools.process.browser.Launcher
+@C:\jdk-14.0.1\bin\javaw.exe ^
+ --module-path target\classes;target\lib ^
+ --add-opens java.base/java.lang=weld.core.impl ^
+ --enable-preview ^
+ --module windchopper.tools.process.browser/com.github.windchopper.tools.process.browser.Launcher

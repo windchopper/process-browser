@@ -1,10 +1,10 @@
 package com.github.windchopper.tools.process.browser;
 
-import com.github.windchopper.common.fx.annotation.Action;
-import com.github.windchopper.common.fx.annotation.FXMLResource;
-import com.github.windchopper.common.fx.event.ActionEngage;
-import com.github.windchopper.common.fx.event.FXMLResourceOpen;
-import com.github.windchopper.common.util.KnownSystemProperties;
+import com.github.windchopper.common.fx.cdi.Action;
+import com.github.windchopper.common.fx.cdi.ActionEngage;
+import com.github.windchopper.common.fx.cdi.form.Form;
+import com.github.windchopper.common.fx.cdi.form.StageFormLoad;
+import com.github.windchopper.common.util.ClassPathResource;
 import com.github.windchopper.common.util.Pipeliner;
 import com.github.windchopper.tools.process.browser.jna.WindowHandle;
 import com.github.windchopper.tools.process.browser.jna.WindowRoutines;
@@ -14,6 +14,7 @@ import javafx.beans.value.ObservableValue;
 import javafx.event.ActionEvent;
 import javafx.fxml.FXML;
 import javafx.geometry.Dimension2D;
+import javafx.scene.Parent;
 import javafx.scene.control.*;
 import javafx.stage.Modality;
 import javafx.stage.Screen;
@@ -24,19 +25,16 @@ import javax.enterprise.event.Event;
 import javax.inject.Inject;
 import java.time.Duration;
 import java.util.*;
-import java.util.function.Supplier;
 import java.util.logging.Level;
 import java.util.regex.Pattern;
 import java.util.regex.PatternSyntaxException;
 import java.util.stream.Stream;
 
 import static java.util.Arrays.binarySearch;
-import static java.util.Collections.emptyMap;
 import static java.util.Comparator.comparing;
 import static java.util.stream.Collectors.toList;
 
-@ApplicationScoped @FXMLResource(FXMLResources.FXML__PROCESS_LIST) public class ProcessListStageController
-    extends AnyStageController implements PreferencesAware {
+@ApplicationScoped @Form(FXMLResources.FXML__PROCESS_LIST) public class ProcessListStageController extends AnyStageController implements PreferencesAware {
 
     private static final ResourceBundle bundle = ResourceBundle.getBundle("com.github.windchopper.tools.process.browser.i18n.messages");
 
@@ -46,20 +44,24 @@ import static java.util.stream.Collectors.toList;
             setDaemon(true);
         }
 
-        @Override public void run() {
-            while (!Thread.interrupted()) {
-                try {
-                    Thread.sleep(Duration.ofSeconds(5).toMillis());
-                    if (toggleAutoRefreshMenuItem.isSelected()) Platform.runLater(ProcessListStageController.this::refreshImpl);
-                } catch (InterruptedException ignored) {
-                    break;
-                }
+        @Override @SuppressWarnings("BusyWait") public void run() {
+            try {
+                long timeout = Duration.ofSeconds(5).toMillis();
+
+                do {
+                    Thread.sleep(timeout);
+                    if (toggleAutoRefreshMenuItem.isSelected()) {
+                        Platform.runLater(ProcessListStageController.this::refreshImpl);
+                    }
+                } while (
+                    !Thread.interrupted());
+            } catch (InterruptedException ignored) {
             }
         }
 
     }
 
-    @Inject protected Event<FXMLResourceOpen> fxmlFormOpenEvent;
+    @Inject protected Event<StageFormLoad> fxmlFormOpenEvent;
     @Inject @Action("makeFullscreen") protected Event<ActionEngage<WindowHandle>> makeFullscreenActionEngage;
 
     @FXML protected TableView<ProcessInfo> processTableView;
@@ -71,13 +73,9 @@ import static java.util.stream.Collectors.toList;
 
     private List<ProcessInfo> processList;
 
-    @Override protected void start(Stage stage, String fxmlResource, Map<String, ?> parameters) {
-        super.start(
-            Pipeliner.of(() -> stage)
-                .set(target -> target::setTitle, bundle.getString("stage.processList.title"))
-                .get(),
-            fxmlResource,
-            parameters);
+    @Override protected void afterLoad(Parent form, Map<String, ?> parameters, Map<String, ?> formNamespace) {
+        super.afterLoad(form, parameters, formNamespace);
+        stage.setTitle(bundle.getString("stage.processList.title"));
 
         loadProcessTree(processList = loadProcessList());
 
@@ -86,7 +84,7 @@ import static java.util.stream.Collectors.toList;
         Stream.of(makeFullscreenMenuItem, terminateMenuItem).forEach(
             menuItem -> menuItem.disableProperty().bind(selectionIsProcessHandle.not()));
 
-        var filterText = filterTextPreferencesEntry.get();
+        var filterText = filterTextPreferencesEntry.load();
 
         if (filterText != null && filterText.trim().length() > 0) {
             applyFilter(filterText);
@@ -98,10 +96,11 @@ import static java.util.stream.Collectors.toList;
 
         filterTextField.textProperty().addListener(this::filterTextChanged);
         refreshMenuItem.disableProperty().bind(toggleAutoRefreshMenuItem.selectedProperty());
-        toggleAutoRefreshMenuItem.setSelected(Optional.ofNullable(autoRefreshPreferencesEntry.get())
+        toggleAutoRefreshMenuItem.setSelected(Optional.ofNullable(autoRefreshPreferencesEntry.load())
             .orElse(false));
 
-        new AutoRefreshThread().start();
+        new AutoRefreshThread()
+            .start();
     }
 
     @Override protected Dimension2D preferredStageSize() {
@@ -130,7 +129,7 @@ import static java.util.stream.Collectors.toList;
     }
 
     private void applyFilter(String filterText) {
-        filterTextPreferencesEntry.accept(filterText);
+        filterTextPreferencesEntry.save(filterText);
         loadProcessTree(processList.stream()
             .filter(handle -> matches(handle, filterText))
             .sorted(comparing(ProcessInfo::pid))
@@ -169,44 +168,36 @@ import static java.util.stream.Collectors.toList;
     }
 
     @FXML protected void toggleAutoRefresh(ActionEvent event) {
-        autoRefreshPreferencesEntry.accept(toggleAutoRefreshMenuItem.isSelected());
+        autoRefreshPreferencesEntry.save(toggleAutoRefreshMenuItem.isSelected());
     }
 
     @FXML protected void run(ActionEvent event) {
-        fxmlFormOpenEvent.fire(
-            new FXMLResourceOpen(
-                Pipeliner.of(Stage::new)
-                    .set(target -> target::initOwner, stage)
-                    .set(target -> target::initModality, Modality.APPLICATION_MODAL)
-                    .set(target -> target::setResizable, false)
-                    .get(),
-                FXMLResources.FXML__RUN,
-                emptyMap()));
+        fxmlFormOpenEvent.fire(new StageFormLoad(
+            new ClassPathResource(FXMLResources.FXML__RUN),
+            Pipeliner.of(Stage::new)
+                .set(target -> target::initOwner, stage)
+                .set(target -> target::initModality, Modality.APPLICATION_MODAL)
+                .set(target -> target::setResizable, false)));
     }
 
     @FXML protected void makeFullscreen(ActionEvent event) {
-        var allowed = KnownSystemProperties.operationSystemName.get()
+        var allowed = Optional.ofNullable(System.getProperty("os.name"))
             .filter(name -> name.toLowerCase().contains("windows"))
             .isPresent();
 
         if (allowed) {
-            ProcessInfo selectedItem = processTableView.getSelectionModel().getSelectedItem();
-
-            List<WindowHandle> windowHandles = WindowRoutines.processWindowHandles(
-                selectedItem.pid());
+            var windowHandles = WindowRoutines.processWindowHandles(
+                processTableView.getSelectionModel().getSelectedItem().pid());
 
             if (windowHandles.size() > 1) {
                 fxmlFormOpenEvent.fire(
-                    new FXMLResourceOpen(
+                    new StageFormLoad(
+                        new ClassPathResource(FXMLResources.FXML__SELECTION),
+                        Map.of("windowHandles", windowHandles),
                         Pipeliner.of(Stage::new)
                             .set(target -> target::initOwner, stage)
                             .set(target -> target::initModality, Modality.APPLICATION_MODAL)
-                            .set(target -> target::setResizable, false)
-                            .get(),
-                        FXMLResources.FXML__SELECTION,
-                        Pipeliner.of((Supplier<Map<String, Object>>) HashMap::new)
-                            .set(map -> value -> map.put("windowHandles", value), windowHandles)
-                            .get()));
+                            .set(target -> target::setResizable, false)));
             } else if (windowHandles.size() > 0) {
                 makeFullscreenActionEngage.fire(
                     new ActionEngage<>(windowHandles.get(0)));
@@ -221,7 +212,7 @@ import static java.util.stream.Collectors.toList;
     @FXML protected void terminate(ActionEvent event) {
         var selectedItem = processTableView.getSelectionModel().getSelectedItem();
 
-        boolean terminate = Pipeliner.of(prepareAlert(() -> new Alert(Alert.AlertType.CONFIRMATION, null, ButtonType.YES, ButtonType.NO)))
+        var terminate = Pipeliner.of(prepareAlert(() -> new Alert(Alert.AlertType.CONFIRMATION, null, ButtonType.YES, ButtonType.NO)))
             .set(alert -> alert::setHeaderText, bundle.getString("stage.processList.confirmation.terminate"))
             .map(Alert::showAndWait)
             .get()

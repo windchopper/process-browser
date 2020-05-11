@@ -1,31 +1,29 @@
 package com.github.windchopper.tools.process.browser;
 
-import com.github.windchopper.common.fx.application.StageController;
+import com.github.windchopper.common.fx.cdi.form.StageFormController;
 import com.github.windchopper.common.util.Pipeliner;
+import javafx.scene.Parent;
 import javafx.scene.control.Alert;
 import javafx.scene.image.Image;
+import javafx.stage.Modality;
 import javafx.stage.Stage;
 
 import java.util.Map;
 import java.util.function.Supplier;
 
-import static java.util.Collections.singletonList;
-
-public abstract class AnyStageController extends StageController {
+public abstract class AnyStageController extends StageFormController {
 
     protected final Image iconImage = new Image("/com/github/windchopper/tools/process/browser/images/Show-All-Views-50.png");
 
-    @Override protected void start(Stage stage, String fxmlResource, Map<String, ?> parameters) {
-        super.start(
-            Pipeliner.of(stage)
-                .add(target -> target::getIcons, singletonList(iconImage))
-                .get(),
-            fxmlResource,
-            parameters);
+    @Override protected void afterLoad(Parent form, Map<String, ?> parameters, Map<String, ?> formNamespace) {
+        super.afterLoad(form, parameters, formNamespace);
+        stage.getIcons().add(iconImage);
     }
 
-    @Override protected Alert prepareAlert(Supplier<Alert> constructor) {
-        return Pipeliner.of(super.prepareAlert(constructor))
+    protected Alert prepareAlert(Supplier<Alert> constructor) {
+        return Pipeliner.of(constructor)
+            .accept(alert -> alert.initOwner(stage))
+            .accept(alert -> alert.initModality(Modality.APPLICATION_MODAL))
             .accept(alert -> ((Stage) alert.getDialogPane().getScene().getWindow()).getIcons().add(iconImage))
             .get();
     }

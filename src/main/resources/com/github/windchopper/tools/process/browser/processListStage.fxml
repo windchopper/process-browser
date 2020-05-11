@@ -5,7 +5,8 @@
 <?import javafx.scene.control.*?>
 <?import javafx.scene.layout.BorderPane?>
 
-<BorderPane maxHeight="-Infinity" maxWidth="-Infinity" minHeight="50.0" minWidth="100.0" xmlns="http://javafx.com/javafx/8" xmlns:fx="http://javafx.com/fxml/1">
+<BorderPane maxHeight="-Infinity" maxWidth="-Infinity" minHeight="50.0" minWidth="100.0" xmlns="http://javafx.com/javafx/8"
+            xmlns:fx="http://javafx.com/fxml/1" fx:controller="com.github.windchopper.tools.process.browser.ProcessListStageController">
     <top>
         <TextField fx:id="filterTextField" promptText="%stage.processList.searchBox.prompt" BorderPane.alignment="CENTER">
             <BorderPane.margin>
@@ -59,7 +60,7 @@
                         <MenuItem fx:id="makeFullscreenMenuItem" text="%stage.processList.contextMenu.makeFullscreen" onAction="#makeFullscreen"/>
                         <MenuItem fx:id="terminateMenuItem" text="%stage.processList.contextMenu.terminate" onAction="#terminate"/>
                         <SeparatorMenuItem/>
-                        <MenuItem fx:id="runMenuItem" text="%stage.processList.contextMenu.run" onAction="#run"/>
+                        <MenuItem text="%stage.processList.contextMenu.run" onAction="#run"/>
                     </items>
                 </ContextMenu>
             </contextMenu>
