@@ -1,7 +1,6 @@
 module windchopper.tools.process.browser {
 
     opens com.github.windchopper.tools.process.browser;
-    opens com.github.windchopper.tools.process.browser.jna;
     opens com.github.windchopper.tools.process.browser.images;
 
     requires java.prefs;

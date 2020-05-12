@@ -6,8 +6,6 @@ import com.github.windchopper.common.fx.cdi.form.Form;
 import com.github.windchopper.common.fx.cdi.form.StageFormLoad;
 import com.github.windchopper.common.util.ClassPathResource;
 import com.github.windchopper.common.util.Pipeliner;
-import com.github.windchopper.tools.process.browser.jna.WindowHandle;
-import com.github.windchopper.tools.process.browser.jna.WindowRoutines;
 import javafx.application.Platform;
 import javafx.beans.binding.Bindings;
 import javafx.beans.value.ObservableValue;
@@ -62,7 +60,7 @@ import static java.util.stream.Collectors.toList;
     }
 
     @Inject protected Event<StageFormLoad> fxmlFormOpenEvent;
-    @Inject @Action("makeFullscreen") protected Event<ActionEngage<WindowHandle>> makeFullscreenActionEngage;
+    @Inject @Action("makeFullscreen") protected Event<ActionEngage<WindowInfo<?>>> makeFullscreenActionEngage;
 
     @FXML protected TableView<ProcessInfo> processTableView;
     @FXML protected TextField filterTextField;
@@ -181,30 +179,25 @@ import static java.util.stream.Collectors.toList;
     }
 
     @FXML protected void makeFullscreen(ActionEvent event) {
-        var allowed = Optional.ofNullable(System.getProperty("os.name"))
-            .filter(name -> name.toLowerCase().contains("windows"))
-            .isPresent();
-
-        if (allowed) {
-            var windowHandles = WindowRoutines.processWindowHandles(
+        if (WindowInfoFactory.available()) {
+            var windowHandles = WindowInfoFactory.allWindowsOf(
                 processTableView.getSelectionModel().getSelectedItem().pid());
 
             if (windowHandles.size() > 1) {
-                fxmlFormOpenEvent.fire(
-                    new StageFormLoad(
-                        new ClassPathResource(FXMLResources.FXML__SELECTION),
-                        Map.of("windowHandles", windowHandles),
-                        Pipeliner.of(Stage::new)
-                            .set(target -> target::initOwner, stage)
-                            .set(target -> target::initModality, Modality.APPLICATION_MODAL)
-                            .set(target -> target::setResizable, false)));
+                fxmlFormOpenEvent.fire(new StageFormLoad(
+                    new ClassPathResource(FXMLResources.FXML__SELECTION),
+                    Map.of("windowHandles", windowHandles),
+                    Pipeliner.of(Stage::new)
+                        .set(target -> target::initOwner, stage)
+                        .set(target -> target::initModality, Modality.APPLICATION_MODAL)
+                        .set(target -> target::setResizable, false)));
             } else if (windowHandles.size() > 0) {
-                makeFullscreenActionEngage.fire(
-                    new ActionEngage<>(windowHandles.get(0)));
+                makeFullscreenActionEngage.fire(new ActionEngage<>(
+                    windowHandles.get(0)));
             }
         } else {
             Pipeliner.of(prepareAlert(() -> new Alert(Alert.AlertType.ERROR)))
-                .set(alert -> alert::setHeaderText, bundle.getString("stage.processList.error.notWindows"))
+                .set(alert -> alert::setHeaderText, bundle.getString("stage.processList.error.operatingSystemNotSupported"))
                 .accept(Alert::show);
         }
     }

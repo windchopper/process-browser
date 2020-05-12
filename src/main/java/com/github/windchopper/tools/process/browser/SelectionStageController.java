@@ -4,8 +4,6 @@ import com.github.windchopper.common.fx.cdi.Action;
 import com.github.windchopper.common.fx.cdi.ActionEngage;
 import com.github.windchopper.common.fx.cdi.form.Form;
 import com.github.windchopper.common.util.Pipeliner;
-import com.github.windchopper.tools.process.browser.jna.WindowHandle;
-import com.github.windchopper.tools.process.browser.jna.WindowRoutines;
 import com.sun.jna.platform.win32.Win32Exception;
 import javafx.beans.binding.Bindings;
 import javafx.event.ActionEvent;
@@ -27,14 +25,13 @@ import java.util.Collection;
 import java.util.Map;
 import java.util.ResourceBundle;
 
-@ApplicationScoped @Form(FXMLResources.FXML__SELECTION) public class SelectionStageController
-    extends AnyStageController {
+@ApplicationScoped @Form(FXMLResources.FXML__SELECTION) public class SelectionStageController extends AnyStageController {
 
     private static final ResourceBundle bundle = ResourceBundle.getBundle("com.github.windchopper.tools.process.browser.i18n.messages");
 
-    @Inject @Action("makeFullscreen") protected Event<ActionEngage<WindowHandle>> makeFullscreenActionEngage;
+    @Inject @Action("makeFullscreen") protected Event<ActionEngage<WindowInfo<?>>> makeFullscreenActionEngage;
 
-    @FXML protected ListView<WindowHandle> selectionListView;
+    @FXML protected ListView<WindowInfo<?>> selectionListView;
     @FXML protected Button selectButton;
 
     @Override protected Dimension2D preferredStageSize() {
@@ -45,37 +42,26 @@ import java.util.ResourceBundle;
 
     @Override @SuppressWarnings("unchecked") protected void afterLoad(Parent form, Map<String, ?> parameters, Map<String, ?> formNamespace) {
         super.afterLoad(form, parameters, formNamespace);
-
-        stage.setTitle(
-            bundle.getString("stage.selection.title"));
-        selectionListView.getItems().addAll(
-            (Collection<? extends WindowHandle>) parameters.get("windowHandles"));
-        selectButton.disableProperty().bind(Bindings.isNull(
-            selectionListView.getSelectionModel().selectedItemProperty()));
+        stage.setTitle(bundle.getString("stage.selection.title"));
+        selectionListView.getItems().addAll((Collection<WindowInfo<?>>) parameters.get("windowHandles"));
+        selectButton.disableProperty().bind(Bindings.isNull(selectionListView.getSelectionModel().selectedItemProperty()));
     }
 
     @FXML protected void mouseClicked(MouseEvent event) {
         if (event.getButton() == MouseButton.PRIMARY && event.getClickCount() > 1) {
-            makeFullscreenActionEngage.fire(
-                new ActionEngage<>(selectionListView.getSelectionModel().getSelectedItem()));
+            makeFullscreenActionEngage.fire(new ActionEngage<>(selectionListView.getSelectionModel().getSelectedItem()));
         }
     }
 
     @FXML protected void selectButtonPressed(ActionEvent event) {
-        makeFullscreenActionEngage.fire(
-            new ActionEngage<>(selectionListView.getSelectionModel().getSelectedItem()));
+        makeFullscreenActionEngage.fire(new ActionEngage<>(selectionListView.getSelectionModel().getSelectedItem()));
     }
 
-    protected void makeFullscreen(@Observes @Action("makeFullscreen") ActionEngage<WindowHandle> actionEngage) {
-        if (stage != null) {
-            stage.hide();
-        }
-
-        var windowHandle = actionEngage.target();
+    protected void makeFullscreen(@Observes @Action("makeFullscreen") ActionEngage<WindowInfo<?>> actionEngage) {
+        stage.hide();
 
         try {
-            WindowRoutines.removeWindowFrame(windowHandle);
-            WindowRoutines.applyMonitorSizeToWindow(windowHandle);
+            actionEngage.target().makeFullScreen();
         } catch (Win32Exception thrown) {
             Alert errorAlert = prepareAlert(() -> new Alert(Alert.AlertType.ERROR));
             errorAlert.setHeaderText(thrown.getMessage());
