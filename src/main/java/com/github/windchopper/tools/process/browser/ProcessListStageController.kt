@@ -1,224 +1,224 @@
-package com.github.windchopper.tools.process.browser;
+package com.github.windchopper.tools.process.browser
 
-import com.github.windchopper.common.fx.cdi.form.Form;
-import com.github.windchopper.common.fx.cdi.form.StageFormLoad;
-import com.github.windchopper.common.util.ClassPathResource;
-import com.github.windchopper.common.util.Pipeliner;
-import com.github.windchopper.tools.process.browser.MakeFullScreenPerformer.MakeFullScreen;
-import javafx.application.Platform;
-import javafx.beans.binding.Bindings;
-import javafx.beans.value.ObservableValue;
-import javafx.event.ActionEvent;
-import javafx.fxml.FXML;
-import javafx.geometry.Dimension2D;
-import javafx.scene.Parent;
-import javafx.scene.control.*;
-import javafx.stage.Modality;
-import javafx.stage.Screen;
-import javafx.stage.Stage;
+import com.github.windchopper.common.fx.cdi.form.Form
+import com.github.windchopper.common.fx.cdi.form.FormController
+import com.github.windchopper.common.fx.cdi.form.StageFormLoad
+import com.github.windchopper.common.util.ClassPathResource
+import com.github.windchopper.tools.process.browser.MakeFullScreenPerformer.MakeFullScreen
+import com.github.windchopper.tools.process.browser.WindowInfo.Companion.allWindowsOf
+import com.github.windchopper.tools.process.browser.WindowInfo.Companion.available
+import javafx.application.Platform
+import javafx.beans.binding.Bindings
+import javafx.beans.value.ObservableValue
+import javafx.event.ActionEvent
+import javafx.fxml.FXML
+import javafx.geometry.Dimension2D
+import javafx.scene.Parent
+import javafx.scene.control.*
+import javafx.scene.control.Alert.AlertType
+import javafx.stage.Modality
+import javafx.stage.Screen
+import javafx.stage.Stage
+import kotlinx.coroutines.GlobalScope
+import kotlinx.coroutines.delay
+import kotlinx.coroutines.isActive
+import kotlinx.coroutines.launch
+import java.time.Duration
+import java.util.Comparator.comparing
+import java.util.function.Consumer
+import java.util.function.Supplier
+import java.util.logging.Level
+import java.util.regex.Pattern
+import java.util.regex.PatternSyntaxException
+import javax.enterprise.context.ApplicationScoped
+import javax.enterprise.event.Event
+import javax.inject.Inject
+import kotlin.streams.toList
 
-import javax.enterprise.context.ApplicationScoped;
-import javax.enterprise.event.Event;
-import javax.inject.Inject;
-import java.time.Duration;
-import java.util.Collection;
-import java.util.List;
-import java.util.Map;
-import java.util.Optional;
-import java.util.logging.Level;
-import java.util.regex.Pattern;
-import java.util.regex.PatternSyntaxException;
-import java.util.stream.Stream;
+@ApplicationScoped @Form(Application.FXML__PROCESS_LIST) class ProcessListStageController: AnyStageController() {
 
-import static java.util.Arrays.binarySearch;
-import static java.util.Comparator.comparing;
-import static java.util.stream.Collectors.toList;
+    @Inject protected lateinit var fxmlFormOpenEvent: Event<StageFormLoad>
+    @Inject protected lateinit var makeFullscreenEvent: Event<MakeFullScreen>
 
-@ApplicationScoped @Form(Application.FXML__PROCESS_LIST) public class ProcessListStageController extends AnyStageController {
+    @FXML protected lateinit var processTableView: TableView<ProcessInfo>
+    @FXML protected lateinit var filterTextField: TextField
+    @FXML protected lateinit var refreshMenuItem: MenuItem
+    @FXML protected lateinit var makeFullscreenMenuItem: MenuItem
+    @FXML protected lateinit var terminateMenuItem: MenuItem
+    @FXML protected lateinit var toggleAutoRefreshMenuItem: CheckMenuItem
 
-    private class AutoRefreshThread extends Thread {
+    private var processList: List<ProcessInfo>? = null
 
-        public AutoRefreshThread() {
-            setDaemon(true);
-        }
-
-        @Override @SuppressWarnings("BusyWait") public void run() {
-            try {
-                long timeout = Duration.ofSeconds(5).toMillis();
-
-                do {
-                    Thread.sleep(timeout);
-                    if (toggleAutoRefreshMenuItem.isSelected()) {
-                        Platform.runLater(ProcessListStageController.this::refreshImpl);
-                    }
-                } while (
-                    !Thread.interrupted());
-            } catch (InterruptedException ignored) {
-            }
-        }
-
+    override fun preferredStageSize(): Dimension2D {
+        return Screen.getPrimary().visualBounds
+            .let { Dimension2D(it.width / 2, it.height / 2) }
     }
 
-    @Inject protected Event<StageFormLoad> fxmlFormOpenEvent;
-    @Inject protected Event<MakeFullScreen> makeFullscreenEvent;
+    override fun afterLoad(form: Parent, parameters: Map<String, *>, formNamespace: Map<String, *>) {
+        super.afterLoad(form, parameters, formNamespace)
 
-    @FXML protected TableView<ProcessInfo> processTableView;
-    @FXML protected TextField filterTextField;
-    @FXML protected MenuItem refreshMenuItem;
-    @FXML protected MenuItem makeFullscreenMenuItem;
-    @FXML protected MenuItem terminateMenuItem;
-    @FXML protected CheckMenuItem toggleAutoRefreshMenuItem;
+        stage.title = Application.messages.getString("stage.processList.title")
 
-    private List<ProcessInfo> processList;
+        loadProcessTree(loadProcessList()
+            .also { processList = it })
 
-    @Override protected void afterLoad(Parent form, Map<String, ?> parameters, Map<String, ?> formNamespace) {
-        super.afterLoad(form, parameters, formNamespace);
-        stage.setTitle(Application.messages.getString("stage.processList.title"));
+        val selectionIsProcessInfo = Bindings.isNotNull(processTableView.selectionModel.selectedItemProperty())
 
-        loadProcessTree(processList = loadProcessList());
+        listOf(makeFullscreenMenuItem, terminateMenuItem)
+            .forEach { it.disableProperty().bind(selectionIsProcessInfo.not()) }
 
-        var selectionIsProcessHandle = Bindings.isNotNull(
-            processTableView.getSelectionModel().selectedItemProperty());
-        Stream.of(makeFullscreenMenuItem, terminateMenuItem).forEach(
-            menuItem -> menuItem.disableProperty().bind(selectionIsProcessHandle.not()));
+        listOf(makeFullscreenMenuItem, terminateMenuItem)
+            .forEach { it.disableProperty().bind(selectionIsProcessInfo.not()) }
 
-        var filterText = Application.filterTextPreferencesEntry.load();
+        val filterText = Application.filterTextPreferencesEntry.load()
+            ?.trimToNull()
 
-        if (filterText != null && filterText.trim().length() > 0) {
-            applyFilter(filterText);
-            filterTextField.setText(filterText);
-            filterTextField.requestFocus();
+        if (filterText == null) {
+            processTableView.requestFocus()
         } else {
-            processTableView.requestFocus();
+            applyFilter(filterText)
+            filterTextField.text = filterText
+            filterTextField.requestFocus()
         }
 
-        filterTextField.textProperty().addListener(this::filterTextChanged);
-        refreshMenuItem.disableProperty().bind(toggleAutoRefreshMenuItem.selectedProperty());
-        toggleAutoRefreshMenuItem.setSelected(Optional.ofNullable(Application.autoRefreshPreferencesEntry.load())
-            .orElse(false));
+        filterTextField.textProperty().addListener { property, oldValue, newValue -> filterTextChanged(property, oldValue, newValue) }
+        toggleAutoRefreshMenuItem.isSelected = Application.autoRefreshPreferencesEntry.load()?:false
+        refreshMenuItem.disableProperty().bind(toggleAutoRefreshMenuItem.selectedProperty())
 
-        new AutoRefreshThread()
-            .start();
+        GlobalScope.launch {
+            val timeout = Duration.ofSeconds(5).toMillis()
+
+            while (isActive) {
+                delay(timeout)
+
+                if (toggleAutoRefreshMenuItem.isSelected) {
+                    Platform.runLater { refreshImpl() }
+                }
+            }
+        }
     }
 
-    @Override protected Dimension2D preferredStageSize() {
-        return Pipeliner.of(Screen.getPrimary().getVisualBounds())
-            .map(visualBounds -> new Dimension2D(visualBounds.getWidth() / 2, visualBounds.getHeight() / 2))
-            .get();
+    @Suppress("UNUSED_PARAMETER") private fun filterTextChanged(property: ObservableValue<*>, oldValue: String?, newValue: String?) {
+        applyFilter(newValue)
     }
 
-    @SuppressWarnings("unused") private void filterTextChanged(ObservableValue<? extends String> property, String oldValue, String newValue) {
-        applyFilter(newValue);
-    }
-
-    private boolean matches(ProcessInfo handle, String filterText) {
-        try {
-            return Pipeliner.of(filterText)
-                .map(Pattern::compile)
-                .map(pattern -> pattern.matcher(handle.name()).find() || pattern.matcher(handle.command()).find())
-                .get();
-        } catch (PatternSyntaxException thrown) {
-            if (logger.isLoggable(Level.FINER)) {
-                logger.log(Level.FINER, thrown.getMessage(), thrown);
+    private fun matches(processInfo: ProcessInfo, filterText: String?): Boolean {
+        return try {
+            filterText
+                ?.let { Pattern.compile(it) }
+                ?.let { it.matcher(processInfo.name).find() || it.matcher(processInfo.command).find() }
+                ?:false
+        } catch (thrown: PatternSyntaxException) {
+            if (FormController.logger.isLoggable(Level.FINER)) {
+                FormController.logger.log(Level.FINER, thrown.message, thrown)
             }
 
-            return false;
+            false
         }
     }
 
-    private void applyFilter(String filterText) {
-        Application.filterTextPreferencesEntry.save(filterText);
-        loadProcessTree(processList.stream()
-            .filter(handle -> matches(handle, filterText))
+    private fun applyFilter(filterText: String?) {
+        Application.filterTextPreferencesEntry.save(filterText)
+        loadProcessTree(processList!!.stream()
+            .filter { matches(it, filterText) }
             .sorted(comparing(ProcessInfo::pid))
-            .collect(toList()));
+            .toList())
     }
 
-    private void loadProcessTree(Collection<ProcessInfo> processHandles) {
-        var selectedPids = processTableView.getSelectionModel().getSelectedItems().stream()
-            .mapToLong(ProcessInfo::pid).toArray();
+    private fun loadProcessTree(processHandles: Collection<ProcessInfo>) {
+        val selectedPids = processTableView.selectionModel.selectedItems
+            .map { it.pid }.toTypedArray()
 
-        processTableView.getSelectionModel().clearSelection(); // javafx bug
-        processTableView.getItems().clear();
-        processTableView.getItems().addAll(processHandles);
-        processTableView.sort();
+        processTableView.selectionModel.clearSelection() // javafx bug
+        processTableView.items.clear()
+        processTableView.items.addAll(processHandles)
+        processTableView.sort()
 
-        processHandles.forEach(handle -> {
-            if (binarySearch(selectedPids, handle.pid()) >= 0) {
-                processTableView.getSelectionModel().select(handle);
+        processHandles.forEach(Consumer {
+            if (selectedPids.contains(it.pid)) {
+                processTableView.selectionModel.select(it)
             }
-        });
+        })
     }
 
-    private List<ProcessInfo> loadProcessList() {
+    private fun loadProcessList(): List<ProcessInfo> {
         return ProcessHandle.allProcesses()
-            .filter(handle -> handle.info().command().isPresent()).map(ProcessInfo::new).collect(
-                toList());
+            .filter { it.info().command().isPresent }
+            .map { ProcessInfo(it) }
+            .toList()
     }
 
-    protected void refreshImpl() {
-        processList = loadProcessList();
-        applyFilter(filterTextField.getText());
+    private fun refreshImpl() {
+        processList = loadProcessList()
+        applyFilter(filterTextField.text)
     }
 
-    @FXML protected void refresh(ActionEvent event) {
-        refreshImpl();
+    @FXML @Suppress("UNUSED_PARAMETER") protected fun refresh(event: ActionEvent) {
+        refreshImpl()
     }
 
-    @FXML protected void toggleAutoRefresh(ActionEvent event) {
-        Application.autoRefreshPreferencesEntry.save(toggleAutoRefreshMenuItem.isSelected());
+    @FXML @Suppress("UNUSED_PARAMETER") protected fun toggleAutoRefresh(event: ActionEvent) {
+        Application.autoRefreshPreferencesEntry.save(toggleAutoRefreshMenuItem.isSelected)
     }
 
-    @FXML protected void run(ActionEvent event) {
-        fxmlFormOpenEvent.fire(new StageFormLoad(
-            new ClassPathResource(Application.FXML__RUN),
-            Pipeliner.of(Stage::new)
-                .set(target -> target::initOwner, stage)
-                .set(target -> target::initModality, Modality.APPLICATION_MODAL)
-                .set(target -> target::setResizable, false)));
+    @FXML @Suppress("UNUSED_PARAMETER") protected fun run(event: ActionEvent) {
+        fxmlFormOpenEvent.fire(StageFormLoad(
+            ClassPathResource(Application.FXML__RUN),
+            Supplier {
+                Stage().let {
+                    it.initOwner(stage)
+                    it.initModality(Modality.APPLICATION_MODAL)
+                    it.isResizable = false
+                    it
+                }
+            }))
     }
 
-    @FXML protected void makeFullscreen(ActionEvent event) {
-        if (WindowInfoFactory.available()) {
-            var windowHandles = WindowInfoFactory.allWindowsOf(
-                processTableView.getSelectionModel().getSelectedItem().pid());
+    @FXML
+    protected fun makeFullscreen(event: ActionEvent?) {
+        if (available()) {
+            val windowHandles = allWindowsOf(processTableView.selectionModel.selectedItem.pid)
 
-            if (windowHandles.size() > 1) {
-                fxmlFormOpenEvent.fire(new StageFormLoad(
-                    new ClassPathResource(Application.FXML__SELECTION),
-                    Map.of("windowHandles", windowHandles),
-                    Pipeliner.of(Stage::new)
-                        .set(target -> target::initOwner, stage)
-                        .set(target -> target::initModality, Modality.APPLICATION_MODAL)
-                        .set(target -> target::setResizable, false)));
-            } else if (windowHandles.size() > 0) {
-                makeFullscreenEvent.fire(new MakeFullScreen(this, windowHandles.get(0)));
+            when {
+                windowHandles.size > 1 -> {
+                    fxmlFormOpenEvent.fire(StageFormLoad(
+                        ClassPathResource(Application.FXML__SELECTION),
+                        mapOf("windowHandles" to windowHandles),
+                        Supplier {
+                            Stage().let {
+                                it.initOwner(stage)
+                                it.initModality(Modality.APPLICATION_MODAL)
+                                it.isResizable = false
+                                it
+                            }
+                        }))
+                }
+                windowHandles.isNotEmpty() -> {
+                    makeFullscreenEvent.fire(MakeFullScreen(this, windowHandles.first()))
+                }
+                else -> {
+                    prepareAlert(AlertType.ERROR, Application.messages.getString("stage.processList.error.noWindows"))
+                        .show()
+                }
             }
         } else {
-            prepareAlert(Alert.AlertType.ERROR)
-                .set(bean -> bean::setHeaderText, Application.messages.getString("stage.processList.error.operatingSystemNotSupported"))
-                .get().show();
+            prepareAlert(AlertType.ERROR, Application.messages.getString("stage.processList.error.operatingSystemNotSupported"))
+                .show()
         }
     }
 
-    @FXML protected void terminate(ActionEvent event) {
-        var selectedItem = processTableView.getSelectionModel().getSelectedItem();
-
-        var terminate = prepareAlert(Alert.AlertType.CONFIRMATION, null, ButtonType.YES, ButtonType.NO)
-            .set(alert -> alert::setHeaderText, Application.messages.getString("stage.processList.confirmation.terminate"))
-            .map(Alert::showAndWait)
-            .get().map(choice -> choice == ButtonType.YES)
-            .orElse(false);
+    @FXML protected fun terminate(event: ActionEvent?) {
+        val selectedItem = processTableView.selectionModel.selectedItem
+        val terminate = prepareAlert(AlertType.CONFIRMATION, Application.messages.getString("stage.processList.confirmation.terminate"), ButtonType.YES, ButtonType.NO)
+            .showAndWait().filter { it == ButtonType.YES }.isPresent
 
         try {
             if (terminate) {
-                selectedItem.destroyForcibly();
-                processTableView.getItems().remove(selectedItem);
+                selectedItem.destroyForcibly()
+                processTableView.items.remove(selectedItem)
             }
-        } catch (Exception thrown) {
-            prepareAlert(Alert.AlertType.ERROR)
-                .set(bean -> bean::setHeaderText, String.format(Application.messages.getString("stage.processList.error.unexpected"), thrown.getMessage()))
-                .get().show();
+        } catch (thrown: Exception) {
+            thrown.display(this)
         }
     }
 

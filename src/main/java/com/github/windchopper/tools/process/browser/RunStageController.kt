@@ -1,64 +1,52 @@
-package com.github.windchopper.tools.process.browser;
+package com.github.windchopper.tools.process.browser
 
-import com.github.windchopper.common.fx.cdi.form.Form;
-import com.github.windchopper.common.util.Pipeliner;
-import javafx.beans.binding.Bindings;
-import javafx.event.ActionEvent;
-import javafx.fxml.FXML;
-import javafx.scene.Parent;
-import javafx.scene.control.Alert;
-import javafx.scene.control.Button;
-import javafx.scene.control.CheckBox;
-import javafx.scene.control.TextField;
-import javafx.stage.FileChooser;
+import com.github.windchopper.common.fx.cdi.form.Form
+import javafx.beans.binding.Bindings
+import javafx.event.ActionEvent
+import javafx.fxml.FXML
+import javafx.scene.Parent
+import javafx.scene.control.Button
+import javafx.scene.control.CheckBox
+import javafx.scene.control.TextField
+import javafx.stage.FileChooser
+import java.io.File
+import java.util.concurrent.Callable
+import javax.enterprise.context.ApplicationScoped
 
-import javax.enterprise.context.ApplicationScoped;
-import java.io.File;
-import java.util.Map;
-import java.util.Optional;
+@ApplicationScoped @Form(Application.FXML__RUN) class RunStageController: AnyStageController() {
 
-@ApplicationScoped @Form(Application.FXML__RUN) public class RunStageController extends AnyStageController {
+    @FXML protected lateinit var commandTextField: TextField
+    @FXML protected lateinit var elevateCheckBox: CheckBox
+    @FXML protected lateinit var okButton: Button
 
-    @FXML protected TextField commandTextField;
-    @FXML protected CheckBox elevateCheckBox;
-    @FXML protected Button okButton;
-
-    @FXML protected void browse(ActionEvent event) {
-        Optional.ofNullable(Pipeliner.of(FileChooser::new)
-            .set(chooser -> chooser::setInitialDirectory, Optional.ofNullable(Application.browseInitialDirectoryPreferencesEntry.load())
-                .orElseGet(() -> Optional.ofNullable(System.getProperty("user.home"))
-                    .map(File::new)
-                    .orElse(null)))
-            .get()
-            .showOpenDialog(stage))
-            .ifPresent(selectedFile -> {
-                Application.browseInitialDirectoryPreferencesEntry.save(
-                    selectedFile.getParentFile());
-                commandTextField.setText(
-                    selectedFile.getAbsolutePath());
-            });
+    override fun afterLoad(form: Parent, parameters: Map<String, *>, formNamespace: Map<String, *>) {
+        super.afterLoad(form, parameters, formNamespace)
+        stage.title = Application.messages.getString("stage.run.title")
+        okButton.disableProperty().bind(Bindings.isEmpty(commandTextField.textProperty()))
+        elevateCheckBox.disableProperty().bind(Bindings.createBooleanBinding(Callable { false }).not())
     }
 
-    @FXML protected void run(ActionEvent event) {
+    @FXML protected fun browse(event: ActionEvent) {
+        val chooser = FileChooser()
+            .let {
+                it.initialDirectory = Application.browseInitialDirectoryPreferencesEntry.load()
+                    ?: System.getProperty("user.home")?.let { File(it) }
+                it
+            }
+
+        chooser.showOpenDialog(stage)
+            ?.let {
+                Application.browseInitialDirectoryPreferencesEntry.save(it.parentFile)
+                commandTextField.text = it.absolutePath
+            }
+    }
+
+    @FXML protected fun run(event: ActionEvent) {
         try {
-            new ProcessBuilder(commandTextField.getText())
-                .start();
-        } catch (Exception thrown) {
-            prepareAlert(Alert.AlertType.ERROR)
-                .set(bean -> bean::setHeaderText, thrown.getMessage())
-                .get().show();
+            ProcessBuilder(commandTextField.text).start()
+        } catch (thrown: Exception) {
+            thrown.display(this)
         }
-    }
-
-    @Override protected void afterLoad(Parent form, Map<String, ?> parameters, Map<String, ?> formNamespace) {
-        super.afterLoad(form, parameters, formNamespace);
-
-        stage.setTitle(
-            Application.messages.getString("stage.run.title"));
-        okButton.disableProperty().bind(
-            Bindings.isEmpty(commandTextField.textProperty()));
-        elevateCheckBox.disableProperty().bind(
-            Bindings.createBooleanBinding(() -> false).not());
     }
 
 }

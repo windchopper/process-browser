@@ -3,6 +3,11 @@ module windchopper.tools.process.browser {
     opens com.github.windchopper.tools.process.browser;
     opens com.github.windchopper.tools.process.browser.images;
 
+    requires kotlin.stdlib;
+    requires kotlin.stdlib.jdk8;
+
+    requires kotlinx.coroutines.core;
+
     requires java.prefs;
     requires java.logging;
 

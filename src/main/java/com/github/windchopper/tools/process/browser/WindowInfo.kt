@@ -1,23 +1,26 @@
-package com.github.windchopper.tools.process.browser;
+package com.github.windchopper.tools.process.browser
 
-import java.util.ResourceBundle;
+abstract class WindowInfo<T>(protected val nativeHandle: T, private val title: String?) {
 
-public abstract class WindowInfo<NativeHandleType> {
+    abstract fun makeFullScreen()
 
-    private static final ResourceBundle bundle = ResourceBundle.getBundle("com.github.windchopper.tools.process.browser.i18n.messages");
-
-    protected final NativeHandleType nativeHandle;
-    protected final String title;
-
-    public WindowInfo(NativeHandleType nativeHandle, String title) {
-        this.nativeHandle = nativeHandle;
-        this.title = title;
+    override fun toString(): String {
+        return "${title?:Application.messages.getString("stage.selection.emptyTitle")}: ${nativeHandle}"
     }
 
-    public abstract void makeFullScreen();
+    companion object {
 
-    @Override public String toString() {
-        return String.format("%s: %s", title != null ? title : bundle.getString("stage.selection.emptyTitle"), nativeHandle);
+        fun available(): Boolean {
+            return OperatingSystem.detect() == OperatingSystem.WIN32
+        }
+
+        fun allWindowsOf(pid: Long): List<WindowInfo<*>> {
+            return when(OperatingSystem.detect()) {
+                OperatingSystem.WIN32 -> Win32WindowInfo.allProcessWindows(pid)
+                else -> emptyList()
+            }
+        }
+
     }
 
 }

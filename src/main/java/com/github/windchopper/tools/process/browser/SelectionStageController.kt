@@ -1,53 +1,51 @@
-package com.github.windchopper.tools.process.browser;
+package com.github.windchopper.tools.process.browser
 
-import com.github.windchopper.common.fx.cdi.form.Form;
-import com.github.windchopper.common.util.Pipeliner;
-import com.github.windchopper.tools.process.browser.MakeFullScreenPerformer.MakeFullScreen;
-import javafx.beans.binding.Bindings;
-import javafx.event.ActionEvent;
-import javafx.fxml.FXML;
-import javafx.geometry.Dimension2D;
-import javafx.scene.Parent;
-import javafx.scene.control.Button;
-import javafx.scene.control.ListView;
-import javafx.scene.input.MouseButton;
-import javafx.scene.input.MouseEvent;
-import javafx.stage.Screen;
+import com.github.windchopper.common.fx.cdi.form.Form
+import com.github.windchopper.tools.process.browser.Application.Companion.messages
+import com.github.windchopper.tools.process.browser.MakeFullScreenPerformer.MakeFullScreen
+import javafx.beans.binding.Bindings
+import javafx.event.ActionEvent
+import javafx.fxml.FXML
+import javafx.geometry.Dimension2D
+import javafx.scene.Parent
+import javafx.scene.control.Button
+import javafx.scene.control.ListView
+import javafx.scene.input.MouseButton
+import javafx.scene.input.MouseEvent
+import javafx.stage.Screen
+import javax.enterprise.context.ApplicationScoped
+import javax.enterprise.event.Event
+import javax.inject.Inject
 
-import javax.enterprise.context.ApplicationScoped;
-import javax.enterprise.event.Event;
-import javax.inject.Inject;
-import java.util.Collection;
-import java.util.Map;
+@ApplicationScoped @Form(Application.FXML__SELECTION) class SelectionStageController: AnyStageController() {
 
-@ApplicationScoped @Form(Application.FXML__SELECTION) public class SelectionStageController extends AnyStageController {
+    @Inject protected lateinit var makeFullscreenEvent: Event<MakeFullScreen>
 
-    @Inject protected Event<MakeFullScreen> makeFullscreenEvent;
+    @FXML protected lateinit var selectionListView: ListView<WindowInfo<*>>
+    @FXML protected lateinit var selectButton: Button
 
-    @FXML protected ListView<WindowInfo<?>> selectionListView;
-    @FXML protected Button selectButton;
-
-    @Override protected Dimension2D preferredStageSize() {
-        return Pipeliner.of(Screen.getPrimary().getVisualBounds())
-            .map(visualBounds -> new Dimension2D(visualBounds.getWidth() / 3, visualBounds.getHeight() / 3))
-            .get();
+    override fun preferredStageSize(): Dimension2D {
+        return Screen.getPrimary().visualBounds
+            .let { Dimension2D(it.width / 3, it.height / 3) }
     }
 
-    @Override @SuppressWarnings("unchecked") protected void afterLoad(Parent form, Map<String, ?> parameters, Map<String, ?> formNamespace) {
-        super.afterLoad(form, parameters, formNamespace);
-        stage.setTitle(Application.messages.getString("stage.selection.title"));
-        selectionListView.getItems().addAll((Collection<WindowInfo<?>>) parameters.get("windowHandles"));
-        selectButton.disableProperty().bind(Bindings.isNull(selectionListView.getSelectionModel().selectedItemProperty()));
-    }
-
-    @FXML protected void mouseClicked(MouseEvent event) {
-        if (event.getButton() == MouseButton.PRIMARY && event.getClickCount() > 1) {
-            makeFullscreenEvent.fire(new MakeFullScreen(this, selectionListView.getSelectionModel().getSelectedItem()));
+    @Suppress("UNCHECKED_CAST") override fun afterLoad(form: Parent, parameters: Map<String, *>, formNamespace: Map<String, *>) {
+        super.afterLoad(form, parameters, formNamespace)
+        stage.title = messages.getString("stage.selection.title")
+        selectButton.disableProperty().bind(Bindings.isNull(selectionListView.selectionModel.selectedItemProperty()))
+        parameters["windowHandles"]?.let {
+            selectionListView.items.addAll(it as Collection<WindowInfo<*>>)
         }
     }
 
-    @FXML protected void selectButtonPressed(ActionEvent event) {
-        makeFullscreenEvent.fire(new MakeFullScreen(this, selectionListView.getSelectionModel().getSelectedItem()));
+    @FXML protected fun selectButtonPressed(event: ActionEvent?) {
+        makeFullscreenEvent.fire(MakeFullScreen(this, selectionListView.selectionModel.selectedItem))
+    }
+
+    @FXML protected fun mouseClicked(event: MouseEvent) {
+        if (event.button == MouseButton.PRIMARY && event.clickCount > 1) {
+            makeFullscreenEvent.fire(MakeFullScreen(this, selectionListView.selectionModel.selectedItem))
+        }
     }
 
 }

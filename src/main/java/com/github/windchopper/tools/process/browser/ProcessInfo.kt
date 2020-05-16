@@ -1,81 +1,50 @@
-package com.github.windchopper.tools.process.browser;
+package com.github.windchopper.tools.process.browser
 
-import com.github.windchopper.common.fx.CellFactories;
-import javafx.beans.property.ReadOnlyStringWrapper;
-import javafx.beans.property.StringProperty;
-import javafx.beans.value.ObservableValue;
-import javafx.scene.control.TableCell;
-import javafx.scene.control.TableColumn;
-import javafx.util.Callback;
+import com.github.windchopper.common.fx.CellFactories
+import javafx.beans.property.ReadOnlyStringWrapper
+import javafx.beans.property.StringProperty
+import javafx.beans.value.ObservableValue
+import javafx.scene.control.TableCell
+import javafx.scene.control.TableColumn
+import javafx.scene.control.TableColumn.CellDataFeatures
+import javafx.util.Callback
+import java.nio.file.Paths
 
-import java.nio.file.Path;
-import java.nio.file.Paths;
-import java.util.Objects;
+class ProcessInfo(processHandle: ProcessHandle) {
 
-public class ProcessInfo {
+    val pid: Long = processHandle.pid()
+    val parentPid: Long = processHandle.parent().map { it.pid() }.orElse(-1L)
+    val name: String = processHandle.info().command().map { Paths.get(it) }.map { it.fileName }.map { "${it}" }.orElse("?")
+    val command: String = processHandle.info().command().orElse("?")
 
-    private final long pid;
-    private final long parentPid;
-    private final String name;
-    private final String command;
+    private val pidProperty: StringProperty = ReadOnlyStringWrapper("${pid}")
+    private val parentPidProperty: StringProperty = ReadOnlyStringWrapper(if (parentPid < 0) "" else "${parentPid}")
+    private val nameProperty: StringProperty = ReadOnlyStringWrapper(name)
+    private val commandProperty: StringProperty = ReadOnlyStringWrapper(command)
 
-    private final StringProperty pidProperty;
-    private final StringProperty parentPidProperty;
-    private final StringProperty nameProperty;
-    private final StringProperty commandProperty;
-
-    public ProcessInfo(ProcessHandle processHandle) {
-        pid = processHandle.pid();
-        parentPid = processHandle.parent()
-            .map(ProcessHandle::pid)
-            .orElse(-1L);
-        name = processHandle.info().command()
-            .map(Paths::get)
-            .map(Path::getFileName)
-            .map(Objects::toString)
-            .orElse("?");
-        command = processHandle.info().command()
-            .orElse("?");
-
-        pidProperty = new ReadOnlyStringWrapper(Objects.toString(pid));
-        parentPidProperty = new ReadOnlyStringWrapper(parentPid < 0 ? "" : Objects.toString(parentPid));
-        nameProperty = new ReadOnlyStringWrapper(name);
-        commandProperty = new ReadOnlyStringWrapper(command);
-    }
-
-    public long pid() {
-        return pid;
-    }
-
-    public long parentPid() {
-        return parentPid;
-    }
-
-    public String name() {
-        return name;
-    }
-
-    public String command() {
-        return command;
-    }
-
-    public void destroyForcibly() {
+    fun destroyForcibly() {
         ProcessHandle.of(pid)
-            .ifPresent(ProcessHandle::destroyForcibly);
+            .ifPresent { it.destroyForcibly() }
     }
 
-    public static Callback<TableColumn<ProcessInfo, String>, TableCell<ProcessInfo, String>> tableCellFactory() {
-        return CellFactories.tableColumnCellFactory((cell, column, item, empty) -> cell.setText(item));
-    }
+    companion object {
 
-    public static Callback<TableColumn.CellDataFeatures<ProcessInfo, String>, ObservableValue<String>> tableCellValueFactory() {
-        return (features) -> features.getValue() == null ? null : switch (features.getTableColumn().getId()) {
-            default -> null;
-            case "identifierColumn" -> features.getValue().pidProperty;
-            case "parentIdentifierColumn" -> features.getValue().parentPidProperty;
-            case "nameColumn" -> features.getValue().nameProperty;
-            case "executablePathColumn" -> features.getValue().commandProperty;
-        };
+        @JvmStatic fun tableCellFactory(): Callback<TableColumn<ProcessInfo?, String?>, TableCell<ProcessInfo?, String?>> {
+            return CellFactories.tableColumnCellFactory { cell, column, item, empty -> cell.setText(item) }
+        }
+
+        @JvmStatic fun tableCellValueFactory(): Callback<CellDataFeatures<ProcessInfo, String>, ObservableValue<String>> {
+            return Callback {
+                when (it.tableColumn.id) {
+                    "identifierColumn" -> it.value.pidProperty
+                    "parentIdentifierColumn" -> it.value.parentPidProperty
+                    "nameColumn" -> it.value.nameProperty
+                    "executablePathColumn" -> it.value.commandProperty
+                        else -> throw IllegalArgumentException("Unknown column: ${it.tableColumn.id}")
+                }
+            }
+        }
+
     }
 
 }

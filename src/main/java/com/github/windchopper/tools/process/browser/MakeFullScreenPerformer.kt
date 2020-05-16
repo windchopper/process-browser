@@ -1,31 +1,20 @@
-package com.github.windchopper.tools.process.browser;
+package com.github.windchopper.tools.process.browser
 
-import javafx.scene.control.Alert;
+import javafx.scene.control.Alert
+import javax.enterprise.context.ApplicationScoped
+import javax.enterprise.event.Observes
 
-import javax.enterprise.context.ApplicationScoped;
-import javax.enterprise.event.Observes;
+@ApplicationScoped class MakeFullScreenPerformer {
 
-@ApplicationScoped public class MakeFullScreenPerformer {
+    class MakeFullScreen(val stageController: AnyStageController, val windowInfo: WindowInfo<*>)
 
-    public static class MakeFullScreen {
-
-        final AnyStageController stageController;
-        final WindowInfo<?> windowInfo;
-
-        public MakeFullScreen(AnyStageController stageController, WindowInfo<?> windowInfo) {
-            this.stageController = stageController;
-            this.windowInfo = windowInfo;
-        }
-
-    }
-
-    public void makeFullScreen(@Observes MakeFullScreen makeFullScreen) {
+    fun makeFullScreen(@Observes makeFullScreen: MakeFullScreen) {
         try {
-            makeFullScreen.windowInfo.makeFullScreen();
-        } catch (Exception thrown) {
-            makeFullScreen.stageController.prepareAlert(Alert.AlertType.ERROR)
-                .set(bean -> bean::setHeaderText, thrown.getMessage())
-                .get().show();
+            makeFullScreen.windowInfo.makeFullScreen()
+        } catch (thrown: Exception) {
+            makeFullScreen.stageController
+                .prepareAlert(Alert.AlertType.ERROR, thrown.message)
+                .show()
         }
     }
 

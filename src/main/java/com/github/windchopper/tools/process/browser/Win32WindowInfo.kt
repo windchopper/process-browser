@@ -1,110 +1,92 @@
-package com.github.windchopper.tools.process.browser;
+package com.github.windchopper.tools.process.browser
 
-import com.sun.jna.platform.win32.*;
-import com.sun.jna.ptr.IntByReference;
+import com.sun.jna.platform.win32.Kernel32
+import com.sun.jna.platform.win32.Kernel32Util
+import com.sun.jna.platform.win32.User32
+import com.sun.jna.platform.win32.Win32Exception
+import com.sun.jna.platform.win32.WinDef.HWND
+import com.sun.jna.platform.win32.WinUser.MONITORINFOEX
+import com.sun.jna.platform.win32.WinUser.WNDENUMPROC
+import com.sun.jna.ptr.IntByReference
+import java.util.*
+import java.util.logging.Logger
 
-import java.util.ArrayList;
-import java.util.List;
-import java.util.function.IntConsumer;
-import java.util.logging.Logger;
+class Win32WindowInfo(nativeHandle: HWND, title: String?): WindowInfo<HWND>(nativeHandle, title) {
 
-public class WindowsWindowInfo extends WindowInfo<WinDef.HWND> {
+    companion object {
 
-    private static final User32 user = User32.INSTANCE;
-    private static final Kernel32 kernel = Kernel32.INSTANCE;
+        private val logger = Logger.getLogger(WindowInfo::class.java.name)
 
-    private static final Logger logger = Logger.getLogger(WindowInfo.class.getName());
+        private val user = User32.INSTANCE
+        private val kernel = Kernel32.INSTANCE
 
-    public WindowsWindowInfo(WinDef.HWND nativeHandle, String title) {
-        super(nativeHandle, title);
-    }
+        private fun Int.toNaturalInt(): Int? = if (this > 0) this else null
 
-    @Override public void makeFullScreen() {
-        removeWindowFrame(nativeHandle);
-        applyMonitorSizeToWindow(nativeHandle);
-    }
+        private fun <T> T.checkLastError(checker: (errorCode: Int) -> Unit): T {
+            kernel.GetLastError().toNaturalInt()
+                ?.let { checker.invoke(it) }
 
-    private static void throwLastError() {
-        checkLastError(errorCode -> {
-            throw new Win32Exception(errorCode);
-        });
-    }
-
-    private static void checkLastError(IntConsumer handler) {
-        int errorCode = kernel.GetLastError();
-
-        if (errorCode > 0) {
-            handler.accept(errorCode);
+            return this
         }
-    }
 
-    private static String windowTitle(WinDef.HWND nativeHandle) {
-        var textLength = user.GetWindowTextLength(nativeHandle);
-
-        if (textLength > 0) {
-            char[] buffer = new char[textLength + 1];
-
-            if (user.GetWindowText(nativeHandle, buffer, buffer.length) > 0) {
-                return new String(buffer);
+        private fun <T> T.throwLastError(): T {
+            return checkLastError {
+                throw Win32Exception(it)
             }
         }
 
-        throwLastError();
-
-        return null;
-    }
-
-    private void applyMonitorSizeToWindow(WinDef.HWND windowHandle) {
-        var monitorHandle = user.MonitorFromWindow(windowHandle, User32.MONITOR_DEFAULTTONEAREST);
-
-        throwLastError();
-
-        var monitorInfo = new WinUser.MONITORINFOEX();
-
-        if (user.GetMonitorInfo(monitorHandle, monitorInfo).booleanValue()) {
-            user.SetWindowPos(windowHandle, null, monitorInfo.rcMonitor.left, monitorInfo.rcMonitor.top, monitorInfo.rcMonitor.right, monitorInfo.rcMonitor.bottom, User32.SWP_FRAMECHANGED);
+        private fun windowTitle(nativeHandle: HWND): String? {
+            return user.GetWindowTextLength(nativeHandle).throwLastError().toNaturalInt()
+                ?.let {
+                    with(CharArray(it + 1)) {
+                        return user.GetWindowText(nativeHandle, this, this.size).throwLastError().toNaturalInt()
+                            ?.let { String(this) }
+                    }
+                }
         }
 
-        throwLastError();
-    }
+        @Suppress("UNUSED_ANONYMOUS_PARAMETER") fun allProcessWindows(pid: Long): List<WindowInfo<*>> {
+            val windowInfoList = ArrayList<WindowInfo<*>>()
 
-    private void removeWindowFrame(WinDef.HWND windowHandle) {
-        var originalWindowStyle = user.GetWindowLong(windowHandle, User32.GWL_STYLE);
+            val windowEnumerator = WNDENUMPROC { handle, pointer ->
+                if (user.IsWindowVisible(handle).throwLastError()) {
+                    with (IntByReference()) {
+                        user.GetWindowThreadProcessId(handle, this).checkLastError { logger.severe(Kernel32Util.formatMessage(it)) }
+                        if (value == pid.toInt()) {
+                            windowInfoList.add(Win32WindowInfo(handle, windowTitle(handle)))
+                        }
+                    }
+                }
 
-        throwLastError();
+                true
+            }
 
-        var modifiedWindowStyle = originalWindowStyle & ~(User32.WS_CAPTION | User32.WS_THICKFRAME | User32.WS_MINIMIZE | User32.WS_MAXIMIZE | User32.WS_SYSMENU);
+            user.EnumWindows(windowEnumerator, null).throwLastError()
 
-        if (modifiedWindowStyle != originalWindowStyle) {
-            user.SetWindowLong(windowHandle, User32.GWL_STYLE, modifiedWindowStyle);
-            throwLastError();
+            return windowInfoList
         }
+
     }
 
-    public static List<WindowInfo<?>> allProcessWindows(long pid) {
-        var windowInfoList = new ArrayList<WindowInfo<?>>();
+    override fun makeFullScreen() {
+        val monitorHandle = user.MonitorFromWindow(nativeHandle, User32.MONITOR_DEFAULTTONEAREST).throwLastError()
 
-        WinUser.WNDENUMPROC windowEnumerator = (handle, pointer) -> {
-            if (user.IsWindowVisible(handle)) {
-                IntByReference windowProcess = new IntByReference();
-
-                user.GetWindowThreadProcessId(handle, windowProcess);
-
-                checkLastError(code -> logger.severe(Kernel32Util.formatMessage(code)));
-
-                if (windowProcess.getValue() == (int) pid) {
-                    windowInfoList.add(new WindowsWindowInfo(handle, windowTitle(handle)));
+        with (MONITORINFOEX()) {
+            if (user.GetMonitorInfo(monitorHandle, this).throwLastError().booleanValue()) {
+                with (rcMonitor) {
+                    user.SetWindowPos(nativeHandle, null, left, top, right, bottom, User32.SWP_FRAMECHANGED).throwLastError()
                 }
             }
+        }
 
-            return true;
-        };
+        val originalWindowStyle = user.GetWindowLong(nativeHandle, User32.GWL_STYLE).throwLastError()
 
-        user.EnumWindows(windowEnumerator, null);
+        val modifiedWindowStyle = originalWindowStyle and (
+            User32.WS_CAPTION or User32.WS_THICKFRAME or User32.WS_MINIMIZE or User32.WS_MAXIMIZE or User32.WS_SYSMENU).inv()
 
-        throwLastError();
-
-        return windowInfoList;
+        if (modifiedWindowStyle != originalWindowStyle) {
+            user.SetWindowLong(nativeHandle, User32.GWL_STYLE, modifiedWindowStyle).throwLastError()
+        }
     }
 
 }

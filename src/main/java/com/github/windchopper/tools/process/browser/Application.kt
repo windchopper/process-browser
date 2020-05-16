@@ -1,71 +1,75 @@
-package com.github.windchopper.tools.process.browser;
+package com.github.windchopper.tools.process.browser
 
-import com.github.windchopper.common.fx.cdi.ResourceBundleLoad;
-import com.github.windchopper.common.fx.cdi.form.StageFormLoad;
-import com.github.windchopper.common.preferences.PlatformPreferencesStorage;
-import com.github.windchopper.common.preferences.PreferencesEntry;
-import com.github.windchopper.common.preferences.PreferencesStorage;
-import com.github.windchopper.common.preferences.types.FlatType;
-import com.github.windchopper.common.util.ClassPathResource;
-import javafx.stage.Stage;
-import org.jboss.weld.environment.se.Weld;
-import org.jboss.weld.environment.se.WeldContainer;
+import com.github.windchopper.common.fx.cdi.ResourceBundleLoad
+import com.github.windchopper.common.fx.cdi.form.StageFormLoad
+import com.github.windchopper.common.preferences.PlatformPreferencesStorage
+import com.github.windchopper.common.preferences.PreferencesEntry
+import com.github.windchopper.common.preferences.PreferencesStorage
+import com.github.windchopper.common.preferences.types.FlatType
+import com.github.windchopper.common.util.ClassPathResource
+import javafx.application.Application
+import javafx.scene.control.Alert
+import javafx.stage.Stage
+import org.jboss.weld.environment.se.Weld
+import java.io.File
+import java.time.Duration
+import java.util.*
+import java.util.function.Function
+import java.util.function.Function.identity
+import java.util.function.Supplier
+import java.util.prefs.Preferences
+import javax.enterprise.inject.spi.CDI
 
-import java.io.File;
-import java.time.Duration;
-import java.util.ResourceBundle;
-import java.util.prefs.Preferences;
+fun <T> T.display(stageController: AnyStageController) where T: Throwable {
+    stageController.prepareAlert(Alert.AlertType.ERROR, message)
+        .show()
+}
 
-import static java.util.function.Function.identity;
+fun String.trimToNull(): String? = trim().let {
+    if (it.isNotEmpty()) it else null
+}
 
-public class Application extends javafx.application.Application {
+class Application: Application() {
 
-    public static final String FXML__PROCESS_LIST = "com/github/windchopper/tools/process/browser/processListStage.fxml";
-    public static final String FXML__SELECTION = "com/github/windchopper/tools/process/browser/selectionStage.fxml";
-    public static final String FXML__RUN = "com/github/windchopper/tools/process/browser/runStage.fxml";
+    companion object {
 
-    public static final ResourceBundle messages = ResourceBundle.getBundle("com.github.windchopper.tools.process.browser.i18n.messages");
+        const val FXML__PROCESS_LIST = "com/github/windchopper/tools/process/browser/processListStage.fxml"
+        const val FXML__SELECTION = "com/github/windchopper/tools/process/browser/selectionStage.fxml"
+        const val FXML__RUN = "com/github/windchopper/tools/process/browser/runStage.fxml"
 
-    public static final Duration defaultBufferLifetime = Duration.ofMinutes(1);
+        val messages = ResourceBundle.getBundle("com.github.windchopper.tools.process.browser.i18n.messages")
 
-    public static final PreferencesStorage preferencesStorage = new PlatformPreferencesStorage(
-        Preferences.userRoot().node("name/wind/tools/process/browser"));
+        private val defaultBufferLifetime = Duration.ofMinutes(1)
+        private val preferencesStorage: PreferencesStorage = PlatformPreferencesStorage(Preferences.userRoot().node("name/wind/tools/process/browser"))
 
-    public static final PreferencesEntry<String> filterTextPreferencesEntry = new PreferencesEntry<>(
-        new PlatformPreferencesStorage(
-            Preferences.userRoot().node("name/wind/tools/process/browser")), "filterText", new FlatType<>(identity(), identity()), Duration.ofMinutes(1));
+        val filterTextPreferencesEntry = PreferencesEntry(preferencesStorage, "filterText", FlatType(identity(), identity()), defaultBufferLifetime)
+        val browseInitialDirectoryPreferencesEntry = PreferencesEntry<File>(preferencesStorage, "browseInitialDirectory", FlatType(Function { File(it) }, Function { it.absolutePath }), defaultBufferLifetime)
+        val autoRefreshPreferencesEntry = PreferencesEntry<Boolean>(preferencesStorage, "autoRefresh", FlatType(Function { it?.toBoolean()?:false }, Function { it.toString() }), defaultBufferLifetime)
 
-    public static final PreferencesEntry<File> browseInitialDirectoryPreferencesEntry = new PreferencesEntry<>(
-        new PlatformPreferencesStorage(
-            Preferences.userRoot().node("name/wind/tools/process/browser")), "browseInitialDirectory", new FlatType<>(File::new, File::getAbsolutePath), Duration.ofMinutes(1));
+        fun main(args: Array<String>) {
+            launch(*args)
+        }
 
-    public static final PreferencesEntry<Boolean> autoRefreshPreferencesEntry = new PreferencesEntry<Boolean>(
-        new PlatformPreferencesStorage(
-            Preferences.userRoot().node("name/wind/tools/process/browser")), "autoRefresh", new FlatType<>(Boolean::valueOf, Object::toString), Duration.ofMinutes(1));
-
-    private Weld weld;
-    private WeldContainer weldContainer;
-
-    @Override public void init() {
-        weld = new Weld();
-        weldContainer = weld.initialize();
     }
 
-    @Override public void stop() {
-        weld.shutdown();
+    private lateinit var weld: Weld
+
+    override fun init() {
+        weld = Weld().let {
+            it.initialize()
+            it
+        }
     }
 
-    @Override public void start(Stage primaryStage) {
-        var beanManager = weldContainer.getBeanManager();
-
-        beanManager.fireEvent(
-            new ResourceBundleLoad(messages));
-        beanManager.fireEvent(
-            new StageFormLoad(new ClassPathResource(FXML__PROCESS_LIST), () -> primaryStage));
+    override fun stop() {
+        weld.shutdown()
     }
 
-    public static void main(String... args) {
-        launch(args);
+    override fun start(primaryStage: Stage) {
+        with (CDI.current().beanManager) {
+            fireEvent(ResourceBundleLoad(messages))
+            fireEvent(StageFormLoad(ClassPathResource(FXML__PROCESS_LIST), Supplier { primaryStage }))
+        }
     }
 
 }
