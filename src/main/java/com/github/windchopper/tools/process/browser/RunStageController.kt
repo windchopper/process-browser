@@ -21,7 +21,7 @@ import javax.enterprise.context.ApplicationScoped
 
     override fun afterLoad(form: Parent, parameters: Map<String, *>, formNamespace: Map<String, *>) {
         super.afterLoad(form, parameters, formNamespace)
-        stage.title = Application.messages.getString("stage.run.title")
+        stage.title = Application.messages["stage.run.title"]
         okButton.disableProperty().bind(Bindings.isEmpty(commandTextField.textProperty()))
         elevateCheckBox.disableProperty().bind(Bindings.createBooleanBinding(Callable { false }).not())
     }
@@ -42,10 +42,9 @@ import javax.enterprise.context.ApplicationScoped
     }
 
     @FXML protected fun run(event: ActionEvent) {
-        try {
-            ProcessBuilder(commandTextField.text).start()
-        } catch (thrown: Exception) {
-            thrown.display(this)
+        exceptionally {
+            ProcessBuilder(commandTextField.text)
+                .start()
         }
     }
 

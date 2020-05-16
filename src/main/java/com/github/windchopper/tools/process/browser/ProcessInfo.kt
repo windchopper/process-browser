@@ -13,12 +13,12 @@ import java.nio.file.Paths
 class ProcessInfo(processHandle: ProcessHandle) {
 
     val pid: Long = processHandle.pid()
-    val parentPid: Long = processHandle.parent().map { it.pid() }.orElse(-1L)
+    private val parentPid: Long? = processHandle.parent().map { it.pid() }.orElse(null)
     val name: String = processHandle.info().command().map { Paths.get(it) }.map { it.fileName }.map { "${it}" }.orElse("?")
     val command: String = processHandle.info().command().orElse("?")
 
     private val pidProperty: StringProperty = ReadOnlyStringWrapper("${pid}")
-    private val parentPidProperty: StringProperty = ReadOnlyStringWrapper(if (parentPid < 0) "" else "${parentPid}")
+    private val parentPidProperty: StringProperty = ReadOnlyStringWrapper(parentPid?.let { "${it}" }?:"")
     private val nameProperty: StringProperty = ReadOnlyStringWrapper(name)
     private val commandProperty: StringProperty = ReadOnlyStringWrapper(command)
 

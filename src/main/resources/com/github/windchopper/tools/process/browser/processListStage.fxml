@@ -12,6 +12,9 @@
             <BorderPane.margin>
                 <Insets bottom="4.0"/>
             </BorderPane.margin>
+            <tooltip>
+                <Tooltip text="%stage.processList.searchBox.prompt.hint"/>
+            </tooltip>
         </TextField>
     </top>
     <padding>

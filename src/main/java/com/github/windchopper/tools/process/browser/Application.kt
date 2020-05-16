@@ -7,7 +7,6 @@ import com.github.windchopper.common.preferences.PreferencesEntry
 import com.github.windchopper.common.preferences.PreferencesStorage
 import com.github.windchopper.common.preferences.types.FlatType
 import com.github.windchopper.common.util.ClassPathResource
-import javafx.application.Application
 import javafx.scene.control.Alert
 import javafx.stage.Stage
 import org.jboss.weld.environment.se.Weld
@@ -25,11 +24,21 @@ fun <T> T.display(stageController: AnyStageController) where T: Throwable {
         .show()
 }
 
+fun AnyStageController.exceptionally(runnable: () -> Unit): AnyStageController {
+    try {
+        runnable.invoke()
+    } catch (thrown: Exception) {
+        thrown.display(this)
+    }
+
+    return this
+}
+
 fun String.trimToNull(): String? = trim().let {
     if (it.isNotEmpty()) it else null
 }
 
-class Application: Application() {
+class Application: javafx.application.Application() {
 
     companion object {
 
@@ -37,7 +46,11 @@ class Application: Application() {
         const val FXML__SELECTION = "com/github/windchopper/tools/process/browser/selectionStage.fxml"
         const val FXML__RUN = "com/github/windchopper/tools/process/browser/runStage.fxml"
 
-        val messages = ResourceBundle.getBundle("com.github.windchopper.tools.process.browser.i18n.messages")
+        private val resourceBundle = ResourceBundle.getBundle("com.github.windchopper.tools.process.browser.i18n.messages")
+
+        val messages = resourceBundle.keySet()
+            .map { it to resourceBundle.getString(it) }
+            .toMap()
 
         private val defaultBufferLifetime = Duration.ofMinutes(1)
         private val preferencesStorage: PreferencesStorage = PlatformPreferencesStorage(Preferences.userRoot().node("name/wind/tools/process/browser"))
@@ -67,7 +80,7 @@ class Application: Application() {
 
     override fun start(primaryStage: Stage) {
         with (CDI.current().beanManager) {
-            fireEvent(ResourceBundleLoad(messages))
+            fireEvent(ResourceBundleLoad(resourceBundle))
             fireEvent(StageFormLoad(ClassPathResource(FXML__PROCESS_LIST), Supplier { primaryStage }))
         }
     }
