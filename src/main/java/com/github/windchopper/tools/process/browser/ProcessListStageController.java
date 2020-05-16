@@ -21,7 +21,10 @@ import javax.enterprise.context.ApplicationScoped;
 import javax.enterprise.event.Event;
 import javax.inject.Inject;
 import java.time.Duration;
-import java.util.*;
+import java.util.Collection;
+import java.util.List;
+import java.util.Map;
+import java.util.Optional;
 import java.util.logging.Level;
 import java.util.regex.Pattern;
 import java.util.regex.PatternSyntaxException;
@@ -31,9 +34,7 @@ import static java.util.Arrays.binarySearch;
 import static java.util.Comparator.comparing;
 import static java.util.stream.Collectors.toList;
 
-@ApplicationScoped @Form(FXMLResources.FXML__PROCESS_LIST) public class ProcessListStageController extends AnyStageController implements PreferencesAware {
-
-    private static final ResourceBundle bundle = ResourceBundle.getBundle("com.github.windchopper.tools.process.browser.i18n.messages");
+@ApplicationScoped @Form(Application.FXML__PROCESS_LIST) public class ProcessListStageController extends AnyStageController {
 
     private class AutoRefreshThread extends Thread {
 
@@ -72,7 +73,7 @@ import static java.util.stream.Collectors.toList;
 
     @Override protected void afterLoad(Parent form, Map<String, ?> parameters, Map<String, ?> formNamespace) {
         super.afterLoad(form, parameters, formNamespace);
-        stage.setTitle(bundle.getString("stage.processList.title"));
+        stage.setTitle(Application.messages.getString("stage.processList.title"));
 
         loadProcessTree(processList = loadProcessList());
 
@@ -81,7 +82,7 @@ import static java.util.stream.Collectors.toList;
         Stream.of(makeFullscreenMenuItem, terminateMenuItem).forEach(
             menuItem -> menuItem.disableProperty().bind(selectionIsProcessHandle.not()));
 
-        var filterText = filterTextPreferencesEntry.load();
+        var filterText = Application.filterTextPreferencesEntry.load();
 
         if (filterText != null && filterText.trim().length() > 0) {
             applyFilter(filterText);
@@ -93,7 +94,7 @@ import static java.util.stream.Collectors.toList;
 
         filterTextField.textProperty().addListener(this::filterTextChanged);
         refreshMenuItem.disableProperty().bind(toggleAutoRefreshMenuItem.selectedProperty());
-        toggleAutoRefreshMenuItem.setSelected(Optional.ofNullable(autoRefreshPreferencesEntry.load())
+        toggleAutoRefreshMenuItem.setSelected(Optional.ofNullable(Application.autoRefreshPreferencesEntry.load())
             .orElse(false));
 
         new AutoRefreshThread()
@@ -106,7 +107,7 @@ import static java.util.stream.Collectors.toList;
             .get();
     }
 
-    private void filterTextChanged(@SuppressWarnings("unused") ObservableValue<? extends String> property, @SuppressWarnings("unused") String oldValue, String newValue) {
+    @SuppressWarnings("unused") private void filterTextChanged(ObservableValue<? extends String> property, String oldValue, String newValue) {
         applyFilter(newValue);
     }
 
@@ -126,7 +127,7 @@ import static java.util.stream.Collectors.toList;
     }
 
     private void applyFilter(String filterText) {
-        filterTextPreferencesEntry.save(filterText);
+        Application.filterTextPreferencesEntry.save(filterText);
         loadProcessTree(processList.stream()
             .filter(handle -> matches(handle, filterText))
             .sorted(comparing(ProcessInfo::pid))
@@ -165,12 +166,12 @@ import static java.util.stream.Collectors.toList;
     }
 
     @FXML protected void toggleAutoRefresh(ActionEvent event) {
-        autoRefreshPreferencesEntry.save(toggleAutoRefreshMenuItem.isSelected());
+        Application.autoRefreshPreferencesEntry.save(toggleAutoRefreshMenuItem.isSelected());
     }
 
     @FXML protected void run(ActionEvent event) {
         fxmlFormOpenEvent.fire(new StageFormLoad(
-            new ClassPathResource(FXMLResources.FXML__RUN),
+            new ClassPathResource(Application.FXML__RUN),
             Pipeliner.of(Stage::new)
                 .set(target -> target::initOwner, stage)
                 .set(target -> target::initModality, Modality.APPLICATION_MODAL)
@@ -184,7 +185,7 @@ import static java.util.stream.Collectors.toList;
 
             if (windowHandles.size() > 1) {
                 fxmlFormOpenEvent.fire(new StageFormLoad(
-                    new ClassPathResource(FXMLResources.FXML__SELECTION),
+                    new ClassPathResource(Application.FXML__SELECTION),
                     Map.of("windowHandles", windowHandles),
                     Pipeliner.of(Stage::new)
                         .set(target -> target::initOwner, stage)
@@ -195,7 +196,7 @@ import static java.util.stream.Collectors.toList;
             }
         } else {
             prepareAlert(Alert.AlertType.ERROR)
-                .set(bean -> bean::setHeaderText, bundle.getString("stage.processList.error.operatingSystemNotSupported"))
+                .set(bean -> bean::setHeaderText, Application.messages.getString("stage.processList.error.operatingSystemNotSupported"))
                 .get().show();
         }
     }
@@ -204,9 +205,7 @@ import static java.util.stream.Collectors.toList;
         var selectedItem = processTableView.getSelectionModel().getSelectedItem();
 
         var terminate = prepareAlert(Alert.AlertType.CONFIRMATION, null, ButtonType.YES, ButtonType.NO)
-            .set(bean -> bean::initOwner, stage)
-            .set(bean -> bean::initModality, Modality.APPLICATION_MODAL)
-            .set(alert -> alert::setHeaderText, bundle.getString("stage.processList.confirmation.terminate"))
+            .set(alert -> alert::setHeaderText, Application.messages.getString("stage.processList.confirmation.terminate"))
             .map(Alert::showAndWait)
             .get().map(choice -> choice == ButtonType.YES)
             .orElse(false);
@@ -218,7 +217,7 @@ import static java.util.stream.Collectors.toList;
             }
         } catch (Exception thrown) {
             prepareAlert(Alert.AlertType.ERROR)
-                .set(bean -> bean::setHeaderText, String.format(bundle.getString("stage.processList.error.unexpected"), thrown.getMessage()))
+                .set(bean -> bean::setHeaderText, String.format(Application.messages.getString("stage.processList.error.unexpected"), thrown.getMessage()))
                 .get().show();
         }
     }

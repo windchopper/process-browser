@@ -1,38 +1,30 @@
 package com.github.windchopper.tools.process.browser;
 
+import java.util.EnumSet;
 import java.util.Optional;
 
 public enum OperatingSystem {
 
-    WINDOWS,
-    MACOS,
-    LINUX,
-    UNKNOWN;
+    WINDOWS("win"),
+    MACOS("mac"),
+    LINUX("nux");
 
-    public static OperatingSystem detect() {
+    private final String token;
+
+    OperatingSystem(String token) {
+        this.token = token;
+    }
+
+    public static Optional<OperatingSystem> detect() {
         Optional<String> operatingSystemNameProperty = Optional.of("os.name")
             .map(System::getProperty)
             .map(String::toLowerCase);
 
-        if (operatingSystemNameProperty
-                .filter(name -> name.contains("win"))
-                .isPresent()) {
-            return WINDOWS;
-        }
-
-        if (operatingSystemNameProperty
-                .filter(name -> name.contains("nux"))
-                .isPresent()) {
-            return LINUX;
-        }
-
-        if (operatingSystemNameProperty
-                .filter(name -> name.contains("mac"))
-                .isPresent()) {
-            return MACOS;
-        }
-
-        return UNKNOWN;
+        return EnumSet.allOf(OperatingSystem.class).stream()
+            .filter(system -> operatingSystemNameProperty
+                .filter(name -> name.contains(system.token))
+                .isPresent())
+            .findFirst();
     }
 
 }

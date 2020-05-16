@@ -19,11 +19,8 @@ import javax.enterprise.event.Event;
 import javax.inject.Inject;
 import java.util.Collection;
 import java.util.Map;
-import java.util.ResourceBundle;
 
-@ApplicationScoped @Form(FXMLResources.FXML__SELECTION) public class SelectionStageController extends AnyStageController {
-
-    private static final ResourceBundle bundle = ResourceBundle.getBundle("com.github.windchopper.tools.process.browser.i18n.messages");
+@ApplicationScoped @Form(Application.FXML__SELECTION) public class SelectionStageController extends AnyStageController {
 
     @Inject protected Event<MakeFullScreen> makeFullscreenEvent;
 
@@ -38,7 +35,7 @@ import java.util.ResourceBundle;
 
     @Override @SuppressWarnings("unchecked") protected void afterLoad(Parent form, Map<String, ?> parameters, Map<String, ?> formNamespace) {
         super.afterLoad(form, parameters, formNamespace);
-        stage.setTitle(bundle.getString("stage.selection.title"));
+        stage.setTitle(Application.messages.getString("stage.selection.title"));
         selectionListView.getItems().addAll((Collection<WindowInfo<?>>) parameters.get("windowHandles"));
         selectButton.disableProperty().bind(Bindings.isNull(selectionListView.getSelectionModel().selectedItemProperty()));
     }

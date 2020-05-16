@@ -16,12 +16,8 @@ import javax.enterprise.context.ApplicationScoped;
 import java.io.File;
 import java.util.Map;
 import java.util.Optional;
-import java.util.ResourceBundle;
 
-@ApplicationScoped @Form(FXMLResources.FXML__RUN) public class RunStageController
-    extends AnyStageController implements PreferencesAware {
-
-    private static final ResourceBundle bundle = ResourceBundle.getBundle("com.github.windchopper.tools.process.browser.i18n.messages");
+@ApplicationScoped @Form(Application.FXML__RUN) public class RunStageController extends AnyStageController {
 
     @FXML protected TextField commandTextField;
     @FXML protected CheckBox elevateCheckBox;
@@ -29,14 +25,14 @@ import java.util.ResourceBundle;
 
     @FXML protected void browse(ActionEvent event) {
         Optional.ofNullable(Pipeliner.of(FileChooser::new)
-            .set(chooser -> chooser::setInitialDirectory, Optional.ofNullable(browseInitialDirectoryPreferencesEntry.load())
+            .set(chooser -> chooser::setInitialDirectory, Optional.ofNullable(Application.browseInitialDirectoryPreferencesEntry.load())
                 .orElseGet(() -> Optional.ofNullable(System.getProperty("user.home"))
                     .map(File::new)
                     .orElse(null)))
             .get()
             .showOpenDialog(stage))
             .ifPresent(selectedFile -> {
-                browseInitialDirectoryPreferencesEntry.save(
+                Application.browseInitialDirectoryPreferencesEntry.save(
                     selectedFile.getParentFile());
                 commandTextField.setText(
                     selectedFile.getAbsolutePath());
@@ -58,7 +54,7 @@ import java.util.ResourceBundle;
         super.afterLoad(form, parameters, formNamespace);
 
         stage.setTitle(
-            bundle.getString("stage.run.title"));
+            Application.messages.getString("stage.run.title"));
         okButton.disableProperty().bind(
             Bindings.isEmpty(commandTextField.textProperty()));
         elevateCheckBox.disableProperty().bind(

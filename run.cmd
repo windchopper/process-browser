@@ -2,4 +2,4 @@
  --module-path target\classes;target\lib ^
  --add-opens java.base/java.lang=weld.core.impl ^
  --enable-preview ^
- --module windchopper.tools.process.browser/com.github.windchopper.tools.process.browser.Launcher
+ --module windchopper.tools.process.browser/com.github.windchopper.tools.process.browser.Application
