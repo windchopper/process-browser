@@ -2,6 +2,7 @@ module windchopper.tools.process.browser {
 
     opens com.github.windchopper.tools.process.browser;
     opens com.github.windchopper.tools.process.browser.images;
+    opens com.github.windchopper.tools.process.browser.i18n;
 
     requires kotlin.stdlib;
     requires kotlin.stdlib.jdk8;
