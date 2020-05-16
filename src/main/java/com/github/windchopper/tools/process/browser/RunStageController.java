@@ -48,9 +48,9 @@ import java.util.ResourceBundle;
             new ProcessBuilder(commandTextField.getText())
                 .start();
         } catch (Exception thrown) {
-            Alert errorAlert = prepareAlert(() -> new Alert(Alert.AlertType.ERROR));
-            errorAlert.setHeaderText(thrown.getMessage());
-            errorAlert.show();
+            prepareAlert(Alert.AlertType.ERROR)
+                .set(bean -> bean::setHeaderText, thrown.getMessage())
+                .get().show();
         }
     }
 

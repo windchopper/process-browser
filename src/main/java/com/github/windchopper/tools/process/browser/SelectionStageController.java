@@ -1,16 +1,13 @@
 package com.github.windchopper.tools.process.browser;
 
-import com.github.windchopper.common.fx.cdi.Action;
-import com.github.windchopper.common.fx.cdi.ActionEngage;
 import com.github.windchopper.common.fx.cdi.form.Form;
 import com.github.windchopper.common.util.Pipeliner;
-import com.sun.jna.platform.win32.Win32Exception;
+import com.github.windchopper.tools.process.browser.MakeFullScreenPerformer.MakeFullScreen;
 import javafx.beans.binding.Bindings;
 import javafx.event.ActionEvent;
 import javafx.fxml.FXML;
 import javafx.geometry.Dimension2D;
 import javafx.scene.Parent;
-import javafx.scene.control.Alert;
 import javafx.scene.control.Button;
 import javafx.scene.control.ListView;
 import javafx.scene.input.MouseButton;
@@ -19,7 +16,6 @@ import javafx.stage.Screen;
 
 import javax.enterprise.context.ApplicationScoped;
 import javax.enterprise.event.Event;
-import javax.enterprise.event.Observes;
 import javax.inject.Inject;
 import java.util.Collection;
 import java.util.Map;
@@ -29,7 +25,7 @@ import java.util.ResourceBundle;
 
     private static final ResourceBundle bundle = ResourceBundle.getBundle("com.github.windchopper.tools.process.browser.i18n.messages");
 
-    @Inject @Action("makeFullscreen") protected Event<ActionEngage<WindowInfo<?>>> makeFullscreenActionEngage;
+    @Inject protected Event<MakeFullScreen> makeFullscreenEvent;
 
     @FXML protected ListView<WindowInfo<?>> selectionListView;
     @FXML protected Button selectButton;
@@ -49,24 +45,12 @@ import java.util.ResourceBundle;
 
     @FXML protected void mouseClicked(MouseEvent event) {
         if (event.getButton() == MouseButton.PRIMARY && event.getClickCount() > 1) {
-            makeFullscreenActionEngage.fire(new ActionEngage<>(selectionListView.getSelectionModel().getSelectedItem()));
+            makeFullscreenEvent.fire(new MakeFullScreen(this, selectionListView.getSelectionModel().getSelectedItem()));
         }
     }
 
     @FXML protected void selectButtonPressed(ActionEvent event) {
-        makeFullscreenActionEngage.fire(new ActionEngage<>(selectionListView.getSelectionModel().getSelectedItem()));
-    }
-
-    protected void makeFullscreen(@Observes @Action("makeFullscreen") ActionEngage<WindowInfo<?>> actionEngage) {
-        stage.hide();
-
-        try {
-            actionEngage.target().makeFullScreen();
-        } catch (Win32Exception thrown) {
-            Alert errorAlert = prepareAlert(() -> new Alert(Alert.AlertType.ERROR));
-            errorAlert.setHeaderText(thrown.getMessage());
-            errorAlert.show();
-        }
+        makeFullscreenEvent.fire(new MakeFullScreen(this, selectionListView.getSelectionModel().getSelectedItem()));
     }
 
 }

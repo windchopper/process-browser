@@ -88,6 +88,8 @@ public class WindowsWindowInfo extends WindowInfo<WinDef.HWND> {
             if (user.IsWindowVisible(handle)) {
                 IntByReference windowProcess = new IntByReference();
 
+                user.GetWindowThreadProcessId(handle, windowProcess);
+
                 checkLastError(code -> logger.severe(Kernel32Util.formatMessage(code)));
 
                 if (windowProcess.getValue() == (int) pid) {
@@ -98,9 +100,7 @@ public class WindowsWindowInfo extends WindowInfo<WinDef.HWND> {
             return true;
         };
 
-        if (user.EnumWindows(windowEnumerator, null)) {
-            return windowInfoList;
-        }
+        user.EnumWindows(windowEnumerator, null);
 
         throwLastError();
 

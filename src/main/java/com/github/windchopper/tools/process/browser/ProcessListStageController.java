@@ -1,11 +1,10 @@
 package com.github.windchopper.tools.process.browser;
 
-import com.github.windchopper.common.fx.cdi.Action;
-import com.github.windchopper.common.fx.cdi.ActionEngage;
 import com.github.windchopper.common.fx.cdi.form.Form;
 import com.github.windchopper.common.fx.cdi.form.StageFormLoad;
 import com.github.windchopper.common.util.ClassPathResource;
 import com.github.windchopper.common.util.Pipeliner;
+import com.github.windchopper.tools.process.browser.MakeFullScreenPerformer.MakeFullScreen;
 import javafx.application.Platform;
 import javafx.beans.binding.Bindings;
 import javafx.beans.value.ObservableValue;
@@ -60,7 +59,7 @@ import static java.util.stream.Collectors.toList;
     }
 
     @Inject protected Event<StageFormLoad> fxmlFormOpenEvent;
-    @Inject @Action("makeFullscreen") protected Event<ActionEngage<WindowInfo<?>>> makeFullscreenActionEngage;
+    @Inject protected Event<MakeFullScreen> makeFullscreenEvent;
 
     @FXML protected TableView<ProcessInfo> processTableView;
     @FXML protected TextField filterTextField;
@@ -192,24 +191,24 @@ import static java.util.stream.Collectors.toList;
                         .set(target -> target::initModality, Modality.APPLICATION_MODAL)
                         .set(target -> target::setResizable, false)));
             } else if (windowHandles.size() > 0) {
-                makeFullscreenActionEngage.fire(new ActionEngage<>(
-                    windowHandles.get(0)));
+                makeFullscreenEvent.fire(new MakeFullScreen(this, windowHandles.get(0)));
             }
         } else {
-            Pipeliner.of(prepareAlert(() -> new Alert(Alert.AlertType.ERROR)))
-                .set(alert -> alert::setHeaderText, bundle.getString("stage.processList.error.operatingSystemNotSupported"))
-                .accept(Alert::show);
+            prepareAlert(Alert.AlertType.ERROR)
+                .set(bean -> bean::setHeaderText, bundle.getString("stage.processList.error.operatingSystemNotSupported"))
+                .get().show();
         }
     }
 
     @FXML protected void terminate(ActionEvent event) {
         var selectedItem = processTableView.getSelectionModel().getSelectedItem();
 
-        var terminate = Pipeliner.of(prepareAlert(() -> new Alert(Alert.AlertType.CONFIRMATION, null, ButtonType.YES, ButtonType.NO)))
+        var terminate = prepareAlert(Alert.AlertType.CONFIRMATION, null, ButtonType.YES, ButtonType.NO)
+            .set(bean -> bean::initOwner, stage)
+            .set(bean -> bean::initModality, Modality.APPLICATION_MODAL)
             .set(alert -> alert::setHeaderText, bundle.getString("stage.processList.confirmation.terminate"))
             .map(Alert::showAndWait)
-            .get()
-            .map(choice -> choice == ButtonType.YES)
+            .get().map(choice -> choice == ButtonType.YES)
             .orElse(false);
 
         try {
@@ -218,9 +217,9 @@ import static java.util.stream.Collectors.toList;
                 processTableView.getItems().remove(selectedItem);
             }
         } catch (Exception thrown) {
-            Pipeliner.of(prepareAlert(() -> new Alert(Alert.AlertType.ERROR)))
-                .set(alert -> alert::setHeaderText, String.format(bundle.getString("stage.processList.error.unexpected"), thrown.getMessage()))
-                .accept(Alert::show);
+            prepareAlert(Alert.AlertType.ERROR)
+                .set(bean -> bean::setHeaderText, String.format(bundle.getString("stage.processList.error.unexpected"), thrown.getMessage()))
+                .get().show();
         }
     }
 
