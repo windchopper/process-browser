@@ -53,7 +53,7 @@ class Application: javafx.application.Application() {
             .toMap()
 
         private val defaultBufferLifetime = Duration.ofMinutes(1)
-        private val preferencesStorage: PreferencesStorage = PlatformPreferencesStorage(Preferences.userRoot().node("name/wind/tools/process/browser"))
+        private val preferencesStorage: PreferencesStorage = PlatformPreferencesStorage(Preferences.userRoot().node("com/github/windchopper/tools/process/browser"))
 
         val filterTextPreferencesEntry = PreferencesEntry(preferencesStorage, "filterText", FlatType(identity(), identity()), defaultBufferLifetime)
         val browseInitialDirectoryPreferencesEntry = PreferencesEntry<File>(preferencesStorage, "browseInitialDirectory", FlatType(Function { File(it) }, Function { it.absolutePath }), defaultBufferLifetime)
