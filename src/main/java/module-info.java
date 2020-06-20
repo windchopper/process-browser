@@ -23,7 +23,6 @@ module windchopper.tools.process.browser {
 
     requires weld.se.core;
     requires weld.environment.common;
-    requires weld.core.impl;
 
     requires windchopper.common.fx;
     requires windchopper.common.fx.cdi;

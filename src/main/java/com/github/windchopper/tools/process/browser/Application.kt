@@ -7,6 +7,7 @@ import com.github.windchopper.common.preferences.PreferencesEntry
 import com.github.windchopper.common.preferences.PreferencesStorage
 import com.github.windchopper.common.preferences.types.FlatType
 import com.github.windchopper.common.util.ClassPathResource
+import jakarta.enterprise.inject.spi.CDI
 import javafx.scene.control.Alert
 import javafx.stage.Stage
 import org.jboss.weld.environment.se.Weld
@@ -17,7 +18,6 @@ import java.util.function.Function
 import java.util.function.Function.identity
 import java.util.function.Supplier
 import java.util.prefs.Preferences
-import javax.enterprise.inject.spi.CDI
 
 fun <T> T.display(stageController: AnyStageController) where T: Throwable {
     stageController.prepareAlert(Alert.AlertType.ERROR, message)

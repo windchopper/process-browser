@@ -1,3 +1,5 @@
+@file:Suppress("unused")
+
 package com.github.windchopper.tools.process.browser
 
 import java.util.*

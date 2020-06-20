@@ -1,3 +1,5 @@
+@file:Suppress("UNUSED_ANONYMOUS_PARAMETER")
+
 package com.github.windchopper.tools.process.browser
 
 import com.github.windchopper.common.fx.CellFactories

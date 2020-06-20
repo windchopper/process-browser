@@ -1,6 +1,7 @@
 package com.github.windchopper.tools.process.browser
 
 import com.github.windchopper.common.fx.cdi.form.Form
+import jakarta.enterprise.context.ApplicationScoped
 import javafx.beans.binding.Bindings
 import javafx.event.ActionEvent
 import javafx.fxml.FXML
@@ -11,13 +12,12 @@ import javafx.scene.control.TextField
 import javafx.stage.FileChooser
 import java.io.File
 import java.util.concurrent.Callable
-import javax.enterprise.context.ApplicationScoped
 
 @ApplicationScoped @Form(Application.FXML__RUN) class RunStageController: AnyStageController() {
 
-    @FXML protected lateinit var commandTextField: TextField
-    @FXML protected lateinit var elevateCheckBox: CheckBox
-    @FXML protected lateinit var okButton: Button
+    @FXML private lateinit var commandTextField: TextField
+    @FXML private lateinit var elevateCheckBox: CheckBox
+    @FXML private lateinit var okButton: Button
 
     override fun afterLoad(form: Parent, parameters: Map<String, *>, formNamespace: Map<String, *>) {
         super.afterLoad(form, parameters, formNamespace)
@@ -26,7 +26,7 @@ import javax.enterprise.context.ApplicationScoped
         elevateCheckBox.disableProperty().bind(Bindings.createBooleanBinding(Callable { false }).not())
     }
 
-    @FXML protected fun browse(event: ActionEvent) {
+    @FXML fun browse(event: ActionEvent) {
         val chooser = FileChooser()
             .let {
                 it.initialDirectory = Application.browseInitialDirectoryPreferencesEntry.load()
@@ -41,7 +41,7 @@ import javax.enterprise.context.ApplicationScoped
             }
     }
 
-    @FXML protected fun run(event: ActionEvent) {
+    @FXML fun run(event: ActionEvent) {
         exceptionally {
             ProcessBuilder(commandTextField.text)
                 .start()
