@@ -69,6 +69,14 @@ class Win32WindowInfo(nativeHandle: HWND, title: String?): WindowInfo<HWND>(nati
     }
 
     override fun makeFullScreen() {
+        val originalWindowStyle = user.GetWindowLong(nativeHandle, User32.GWL_STYLE).throwLastError()
+        val modifiedWindowStyle = originalWindowStyle and (
+            User32.WS_CAPTION or User32.WS_THICKFRAME or User32.WS_MINIMIZE or User32.WS_MAXIMIZE or User32.WS_SYSMENU).inv()
+
+        if (modifiedWindowStyle != originalWindowStyle) {
+            user.SetWindowLong(nativeHandle, User32.GWL_STYLE, modifiedWindowStyle).throwLastError()
+        }
+
         val monitorHandle = user.MonitorFromWindow(nativeHandle, User32.MONITOR_DEFAULTTONEAREST).throwLastError()
 
         with (MONITORINFOEX()) {
@@ -77,15 +85,6 @@ class Win32WindowInfo(nativeHandle: HWND, title: String?): WindowInfo<HWND>(nati
                     user.SetWindowPos(nativeHandle, null, left, top, right, bottom, User32.SWP_FRAMECHANGED).throwLastError()
                 }
             }
-        }
-
-        val originalWindowStyle = user.GetWindowLong(nativeHandle, User32.GWL_STYLE).throwLastError()
-
-        val modifiedWindowStyle = originalWindowStyle and (
-            User32.WS_CAPTION or User32.WS_THICKFRAME or User32.WS_MINIMIZE or User32.WS_MAXIMIZE or User32.WS_SYSMENU).inv()
-
-        if (modifiedWindowStyle != originalWindowStyle) {
-            user.SetWindowLong(nativeHandle, User32.GWL_STYLE, modifiedWindowStyle).throwLastError()
         }
     }
 
