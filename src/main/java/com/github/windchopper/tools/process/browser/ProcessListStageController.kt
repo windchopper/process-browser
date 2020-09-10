@@ -27,7 +27,6 @@ import kotlinx.coroutines.isActive
 import kotlinx.coroutines.launch
 import java.time.Duration
 import java.util.function.Consumer
-import java.util.function.Supplier
 import java.util.logging.Level
 import java.util.regex.Pattern
 import java.util.regex.PatternSyntaxException
@@ -164,15 +163,14 @@ import java.util.regex.PatternSyntaxException
 
     @FXML @Suppress("UNUSED_PARAMETER") fun run(event: ActionEvent) {
         fxmlFormOpenEvent.fire(StageFormLoad(
-            ClassPathResource(Application.FXML__RUN),
-            Supplier {
+            ClassPathResource(Application.FXML__RUN)) {
                 Stage().let {
                     it.initOwner(stage)
                     it.initModality(Modality.APPLICATION_MODAL)
                     it.isResizable = false
                     it
                 }
-            }))
+            })
     }
 
     @FXML fun makeFullscreen(event: ActionEvent?) {
@@ -182,15 +180,14 @@ import java.util.regex.PatternSyntaxException
                     size > 1 -> {
                         fxmlFormOpenEvent.fire(StageFormLoad(
                             ClassPathResource(Application.FXML__SELECTION),
-                            mapOf("windowHandles" to this),
-                            Supplier {
+                            mapOf("windowHandles" to this)) {
                                 Stage().let {
                                     it.initOwner(stage)
                                     it.initModality(Modality.APPLICATION_MODAL)
                                     it.isResizable = false
                                     it
                                 }
-                            }))
+                            })
                     }
                     isNotEmpty() -> {
                         exceptionally {

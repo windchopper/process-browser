@@ -11,7 +11,6 @@ import javafx.scene.control.CheckBox
 import javafx.scene.control.TextField
 import javafx.stage.FileChooser
 import java.io.File
-import java.util.concurrent.Callable
 
 @ApplicationScoped @Form(Application.FXML__RUN) class RunStageController: AnyStageController() {
 
@@ -23,15 +22,15 @@ import java.util.concurrent.Callable
         super.afterLoad(form, parameters, formNamespace)
         stage.title = Application.messages["stage.run.title"]
         okButton.disableProperty().bind(Bindings.isEmpty(commandTextField.textProperty()))
-        elevateCheckBox.disableProperty().bind(Bindings.createBooleanBinding(Callable { false }).not())
+        elevateCheckBox.disableProperty().bind(Bindings.createBooleanBinding({ false }).not())
     }
 
     @FXML fun browse(event: ActionEvent) {
         val chooser = FileChooser()
-            .let {
-                it.initialDirectory = Application.browseInitialDirectoryPreferencesEntry.load()
+            .let { fileChooser ->
+                fileChooser.initialDirectory = Application.browseInitialDirectoryPreferencesEntry.load()
                     ?: System.getProperty("user.home")?.let { File(it) }
-                it
+                fileChooser
             }
 
         chooser.showOpenDialog(stage)

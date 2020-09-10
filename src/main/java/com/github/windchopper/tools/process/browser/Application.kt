@@ -14,9 +14,7 @@ import org.jboss.weld.environment.se.Weld
 import java.io.File
 import java.time.Duration
 import java.util.*
-import java.util.function.Function
 import java.util.function.Function.identity
-import java.util.function.Supplier
 import java.util.prefs.Preferences
 
 fun <T> T.display(stageController: AnyStageController) where T: Throwable {
@@ -56,8 +54,8 @@ class Application: javafx.application.Application() {
         private val preferencesStorage: PreferencesStorage = PlatformPreferencesStorage(Preferences.userRoot().node("com/github/windchopper/tools/process/browser"))
 
         val filterTextPreferencesEntry = PreferencesEntry(preferencesStorage, "filterText", FlatType(identity(), identity()), defaultBufferLifetime)
-        val browseInitialDirectoryPreferencesEntry = PreferencesEntry<File>(preferencesStorage, "browseInitialDirectory", FlatType(Function { File(it) }, Function { it.absolutePath }), defaultBufferLifetime)
-        val autoRefreshPreferencesEntry = PreferencesEntry<Boolean>(preferencesStorage, "autoRefresh", FlatType(Function { it?.toBoolean()?:false }, Function { it.toString() }), defaultBufferLifetime)
+        val browseInitialDirectoryPreferencesEntry = PreferencesEntry<File>(preferencesStorage, "browseInitialDirectory", FlatType({ File(it) }, { it.absolutePath }), defaultBufferLifetime)
+        val autoRefreshPreferencesEntry = PreferencesEntry<Boolean>(preferencesStorage, "autoRefresh", FlatType({ it?.toBoolean()?:false }, { it.toString() }), defaultBufferLifetime)
 
         fun main(args: Array<String>) {
             launch(*args)
@@ -81,7 +79,7 @@ class Application: javafx.application.Application() {
     override fun start(primaryStage: Stage) {
         with (CDI.current().beanManager) {
             fireEvent(ResourceBundleLoad(resourceBundle))
-            fireEvent(StageFormLoad(ClassPathResource(FXML__PROCESS_LIST), Supplier { primaryStage }))
+            fireEvent(StageFormLoad(ClassPathResource(FXML__PROCESS_LIST)) { primaryStage })
         }
     }
 

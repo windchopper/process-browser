@@ -8,11 +8,11 @@
     <version>2.1</version>
     <properties>
         <project.build.sourceEncoding>UTF-8</project.build.sourceEncoding>
-        <java.version>13</java.version>
-        <kotlin.version>1.3.72</kotlin.version>
-        <kotlin.compiler.apiVersion>1.3</kotlin.compiler.apiVersion>
-        <kotlin.compiler.languageVersion>1.3</kotlin.compiler.languageVersion>
-        <kotlin.ext.version>1.3.7</kotlin.ext.version>
+        <java.version>14</java.version>
+        <kotlin.version>1.4.10</kotlin.version>
+        <kotlin.compiler.apiVersion>1.4</kotlin.compiler.apiVersion>
+        <kotlin.compiler.languageVersion>1.4</kotlin.compiler.languageVersion>
+        <kotlin.ext.version>1.3.9</kotlin.ext.version>
         <javafx.version>14.0.1</javafx.version>
         <common.version>1.1</common.version>
     </properties>
@@ -82,12 +82,6 @@
             <artifactId>common-util</artifactId>
             <version>${common.version}</version>
         </dependency>
-        <dependency>
-            <groupId>org.jetbrains.kotlin</groupId>
-            <artifactId>kotlin-test</artifactId>
-            <version>${kotlin.version}</version>
-            <scope>test</scope>
-        </dependency>
     </dependencies>
     <build>
         <plugins>
@@ -108,13 +102,6 @@
                         <phase>compile</phase>
                         <goals>
                             <goal>compile</goal>
-                        </goals>
-                    </execution>
-                    <execution>
-                        <id>test-compile</id>
-                        <phase>test-compile</phase>
-                        <goals>
-                            <goal>test-compile</goal>
                         </goals>
                     </execution>
                 </executions>

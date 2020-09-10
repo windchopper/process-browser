@@ -37,10 +37,10 @@ class Win32WindowInfo(nativeHandle: HWND, title: String?): WindowInfo<HWND>(nati
 
         private fun windowTitle(nativeHandle: HWND): String? {
             return user.GetWindowTextLength(nativeHandle).throwLastError().toNaturalInt()
-                ?.let {
-                    with(CharArray(it + 1)) {
-                        return user.GetWindowText(nativeHandle, this, this.size).throwLastError().toNaturalInt()
-                            ?.let { String(this) }
+                ?.let { length ->
+                    CharArray(length + 1).let { buffer ->
+                        user.GetWindowText(nativeHandle, buffer, buffer.size).throwLastError().toNaturalInt()
+                            ?.let { String(buffer) }
                     }
                 }
         }
