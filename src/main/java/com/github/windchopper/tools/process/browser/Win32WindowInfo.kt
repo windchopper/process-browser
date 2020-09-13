@@ -1,3 +1,5 @@
+@file:Suppress("UNUSED_ANONYMOUS_PARAMETER")
+
 package com.github.windchopper.tools.process.browser
 
 import com.sun.jna.Pointer
@@ -45,13 +47,16 @@ class Win32WindowInfo(nativeHandle: HWND, title: String?): WindowInfo<HWND>(nati
                 }
         }
 
-        @Suppress("UNUSED_ANONYMOUS_PARAMETER") fun allProcessWindows(pid: Long): List<WindowInfo<*>> {
+        fun allProcessWindows(pid: Long): List<WindowInfo<*>> {
             val windowInfoList = ArrayList<WindowInfo<*>>()
 
             val windowEnumerator = WNDENUMPROC { handle, pointer ->
                 if (user.IsWindowVisible(handle)) {
                     with (IntByReference()) {
-                        user.GetWindowThreadProcessId(handle, this).checkLastError { logger.severe(Kernel32Util.formatMessage(it)) }
+                        user.GetWindowThreadProcessId(handle, this).checkLastError {
+                            logger.severe(Kernel32Util.formatMessage(it))
+                        }
+
                         if (value == pid.toInt()) {
                             windowInfoList.add(Win32WindowInfo(handle, windowTitle(handle)))
                         }
@@ -71,7 +76,8 @@ class Win32WindowInfo(nativeHandle: HWND, title: String?): WindowInfo<HWND>(nati
     override fun makeFullScreen() {
         val originalWindowStyle = user.GetWindowLong(nativeHandle, User32.GWL_STYLE).throwLastError()
         val modifiedWindowStyle = originalWindowStyle and (
-            User32.WS_CAPTION or User32.WS_THICKFRAME or User32.WS_MINIMIZE or User32.WS_MAXIMIZE or User32.WS_SYSMENU).inv()
+            User32.WS_CAPTION or User32.WS_THICKFRAME or User32.WS_MINIMIZE or User32.WS_MAXIMIZE or User32.WS_SYSMENU)
+                .inv()
 
         if (modifiedWindowStyle != originalWindowStyle) {
             user.SetWindowLong(nativeHandle, User32.GWL_STYLE, modifiedWindowStyle).throwLastError()
