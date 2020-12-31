@@ -15,8 +15,8 @@ module windchopper.tools.process.browser {
     requires javafx.controls;
     requires javafx.fxml;
 
-    requires jakarta.inject.api;
-    requires jakarta.enterprise.cdi.api;
+    requires jakarta.inject;
+    requires jakarta.cdi;
 
     requires com.sun.jna;
     requires com.sun.jna.platform;
