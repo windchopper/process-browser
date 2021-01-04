@@ -28,8 +28,8 @@ import java.io.File
     @FXML fun browse(event: ActionEvent) {
         val chooser = FileChooser()
             .let { fileChooser ->
-                fileChooser.initialDirectory = Application.browseInitialDirectoryPreferencesEntry.load()
-                    ?: System.getProperty("user.home")?.let { File(it) }
+                fileChooser.initialDirectory = Application.browseInitialDirectoryPreferencesEntry.load().value
+                    ?:System.getProperty("user.home")?.let(::File)
                 fileChooser
             }
 

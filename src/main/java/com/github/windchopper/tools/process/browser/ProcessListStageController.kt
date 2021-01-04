@@ -64,7 +64,7 @@ import java.util.regex.PatternSyntaxException
         listOf(makeFullscreenMenuItem, terminateMenuItem)
             .forEach { it.disableProperty().bind(selectionIsProcessInfo.not()) }
 
-        val filterText = Application.filterTextPreferencesEntry.load()
+        val filterText = Application.filterTextPreferencesEntry.load().value
             ?.trimToNull()
 
         if (filterText == null) {
@@ -76,7 +76,7 @@ import java.util.regex.PatternSyntaxException
         }
 
         filterTextField.textProperty().addListener { property, oldValue, newValue -> applyFilter(newValue) }
-        toggleAutoRefreshMenuItem.isSelected = Application.autoRefreshPreferencesEntry.load()?:false
+        toggleAutoRefreshMenuItem.isSelected = Application.autoRefreshPreferencesEntry.load().value?:false
         refreshMenuItem.disableProperty().bind(toggleAutoRefreshMenuItem.selectedProperty())
 
         GlobalScope.launch {
