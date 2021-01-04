@@ -2,16 +2,17 @@ package com.github.windchopper.tools.process.browser
 
 import com.github.windchopper.common.fx.cdi.ResourceBundleLoad
 import com.github.windchopper.common.fx.cdi.form.StageFormLoad
-import com.github.windchopper.common.preferences.PreferencesEntryFlatType
-import com.github.windchopper.common.preferences.impl.BufferedEntry
-import com.github.windchopper.common.preferences.impl.PlatformStorage
-import com.github.windchopper.common.preferences.impl.StandardEntry
+import com.github.windchopper.common.preferences.entries.BufferedEntry
+import com.github.windchopper.common.preferences.entries.StandardEntry
+import com.github.windchopper.common.preferences.storages.PlatformStorage
+import com.github.windchopper.common.preferences.types.BooleanType
+import com.github.windchopper.common.preferences.types.FileType
+import com.github.windchopper.common.preferences.types.StringType
 import com.github.windchopper.common.util.ClassPathResource
 import jakarta.enterprise.inject.spi.CDI
 import javafx.scene.control.Alert
 import javafx.stage.Stage
 import org.jboss.weld.environment.se.Weld
-import java.io.File
 import java.time.Duration
 import java.util.*
 import java.util.prefs.Preferences
@@ -51,15 +52,12 @@ class Application: javafx.application.Application() {
             .map { it to resourceBundle.getString(it) }
             .toMap()
 
-        private val defaultBufferLifetime = Duration.ofMinutes(1)
+        private val preferencesBufferLifetime = Duration.ofMinutes(1)
         private val preferencesStorage = PlatformStorage(Preferences.userRoot().node("com/github/windchopper/tools/process/browser"))
 
-        val filterTextPreferencesEntry = BufferedEntry(defaultBufferLifetime,
-            StandardEntry("filterText", preferencesStorage, PreferencesEntryFlatType(String::identity, String::identity)))
-        val browseInitialDirectoryPreferencesEntry = BufferedEntry(defaultBufferLifetime,
-            StandardEntry("browseInitialDirectory", preferencesStorage, PreferencesEntryFlatType(::File, File::getAbsolutePath)))
-        val autoRefreshPreferencesEntry = BufferedEntry(defaultBufferLifetime,
-            StandardEntry("autoRefresh", preferencesStorage, PreferencesEntryFlatType(String::toBoolean, Boolean::toString)))
+        val filterTextPreferencesEntry = BufferedEntry(preferencesBufferLifetime, StandardEntry(preferencesStorage, "filterText", StringType()))
+        val browseInitialDirectoryPreferencesEntry = BufferedEntry(preferencesBufferLifetime, StandardEntry(preferencesStorage, "browseInitialDirectory", FileType()))
+        val autoRefreshPreferencesEntry = BufferedEntry(preferencesBufferLifetime, StandardEntry(preferencesStorage, "autoRefresh", BooleanType()))
 
         fun main(args: Array<String>) {
             launch(*args)
